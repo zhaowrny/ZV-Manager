@@ -30,7 +30,6 @@ class CommandPresetService {
     QuickCommandPreset(label: '设为白天', command: 'time set day'),
     QuickCommandPreset(label: '设为黑夜', command: 'time set night'),
     QuickCommandPreset(label: '和平难度', command: 'difficulty peaceful'),
-    QuickCommandPreset(label: '生存模式', command: 'gamemode survival'),
     QuickCommandPreset(label: '白名单列表', command: 'whitelist list'),
     QuickCommandPreset(label: '在线公告', command: 'say 服务器已在线，欢迎游玩！'),
   ];

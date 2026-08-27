@@ -87,7 +87,7 @@ class MainActivity : FlutterActivity() {
                 file.delete()
 
                 val connection = java.net.URL(url).openConnection()
-                connection.setRequestProperty("User-Agent", "MCServerManager")
+                connection.setRequestProperty("User-Agent", "ZVManager")
                 connection.connectTimeout = 15_000
                 connection.readTimeout = 30_000
                 val total = connection.contentLengthLong

@@ -22,13 +22,14 @@ class UpdateService {
 
   /// Gitee 仓库最新发布信息地址
   static const _updateInfoUrl =
-      'https://gitee.com/api/v5/repos/venti1112/mcserver_manager/releases/latest';
+      'https://gitee.com/api/v5/repos/driftinblock/zvmanager/releases/latest';
 
   /// Android 原生下载安装通道
   static const _channel = MethodChannel('mc_server_manager/update');
 
   /// 下载进度事件通道（原生推送）
-  static const _progressChannel = EventChannel('mc_server_manager/down_progress');
+  static const _progressChannel =
+      EventChannel('mc_server_manager/down_progress');
 
   /// 是否正在下载，用于防止重复触发并发下载到同一文件。
   static bool _downloading = false;
@@ -50,8 +51,7 @@ class UpdateService {
       final json = jsonDecode(body) as Map<String, dynamic>;
       // Gitee 发布接口的 tag_name 形如 "v1.3.0"，去掉开头的 "v" 用于版本号对比
       final tag = json['tag_name'] as String? ?? '';
-      final latestVersion =
-          tag.startsWith('v') ? tag.substring(1) : tag;
+      final latestVersion = tag.startsWith('v') ? tag.substring(1) : tag;
 
       // 从 assets 中筛选 APK 安装包，取其直链与文件名
       String downloadUrl = '';
@@ -60,10 +60,9 @@ class UpdateService {
       for (final item in assets) {
         final name = (item as Map<String, dynamic>)['name'] as String? ?? '';
         if (name.endsWith('.apk')) {
-          downloadUrl =
-              (item['browser_download_url'] as String? ??
-                  item['download_url'] as String? ??
-                  '');
+          downloadUrl = (item['browser_download_url'] as String? ??
+              item['download_url'] as String? ??
+              '');
           apkName = name;
           break;
         }
@@ -97,7 +96,8 @@ class UpdateService {
             ? '最新版本: ${info.latestVersion}\n当前版本: $currentVersion'
             : '当前版本 $currentVersion 已是最新'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('关闭')),
+          TextButton(
+              onPressed: () => Navigator.pop(context), child: const Text('关闭')),
           if (hasUpdate)
             FilledButton(
               onPressed: () {
@@ -112,7 +112,8 @@ class UpdateService {
   }
 
   /// 调用 Android 原生下载 APK 并调起系统安装器；下载期间展示不可关闭的进度弹窗，失败提示错误。
-  static Future<void> downloadAndInstall(BuildContext context, UpdateInfo info) async {
+  static Future<void> downloadAndInstall(
+      BuildContext context, UpdateInfo info) async {
     if (_downloading) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('正在下载，请稍候…')),
@@ -162,9 +163,7 @@ class UpdateService {
                     CircularProgressIndicator(value: value),
                     const SizedBox(height: 16),
                     Text(
-                      percent == null
-                          ? '正在下载安装包…'
-                          : '下载中：$percent%',
+                      percent == null ? '正在下载安装包…' : '下载中：$percent%',
                       style: Theme.of(context).textTheme.bodyMedium,
                     ),
                   ],
