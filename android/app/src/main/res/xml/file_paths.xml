@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<paths>
+    <!-- APK 下载缓存目录：context.getCacheDir()/apk/latest.apk -->
+    <cache-path name="apk_cache" path="apk/" />
+</paths>
