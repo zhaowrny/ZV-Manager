@@ -1,4 +1,4 @@
-package com.mcserver_manager
+package com.driftinblock.zvmanager
 
 import android.content.ActivityNotFoundException
 import android.content.Intent

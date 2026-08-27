@@ -14,7 +14,7 @@ if (keystorePropertiesFile.exists()) {
 }
 
 android {
-    namespace = "com.mcserver_manager"
+    namespace = "com.driftinblock.zvmanager"
     compileSdk {
         version = release(37) {
             minorApiLevel = 1
@@ -30,7 +30,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.mcserver_manager"
+        applicationId = "com.driftinblock.zvmanager"
         minSdk = 24
         targetSdk = 37
         versionCode = flutter.versionCode
