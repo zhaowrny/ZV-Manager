@@ -130,13 +130,10 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 
   Future<void> _pickVideo() async {
-    final result = await FilePicker.pickFiles(
-      type: FileType.video,
-      allowMultiple: false,
-    );
-    if (result.isEmpty) return;
+    final result = await FilePicker.pickFile(type: FileType.video);
+    if (result == null) return;
 
-    final filePath = result.single.path;
+    final filePath = result.path;
     if (filePath == null) return;
 
     final path = await _saveFileToAssets(filePath, 'video');

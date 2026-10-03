@@ -3,9 +3,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'core/theme/app_theme.dart';
 import 'core/utils/update_service.dart';
 import 'core/widgets/background_widget.dart';
+import 'core/widgets/user_agreement_dialog.dart';  //  新增
 import 'features/server_list/server_list_page.dart';
 import 'providers/theme_provider.dart';
 import 'providers/server_provider.dart';
@@ -23,9 +25,35 @@ class ZVManagerApp extends StatefulWidget {
 class ZVManagerAppState extends State<ZVManagerApp> {
   final GlobalKey<BackgroundWidgetState> _bgKey = GlobalKey();
 
+  bool _showAgreement = false;
+  bool _isReady = false;
+
   @override
   void initState() {
     super.initState();
+    _checkAgreement();
+  }
+
+  // 新增：检查是否已同意用户守则
+  Future<void> _checkAgreement() async {
+    final prefs = await SharedPreferences.getInstance();
+    final agreed = prefs.getBool('user_agreed') ?? false;
+    setState(() {
+      _showAgreement = !agreed;
+      _isReady = true;
+    });
+    if (agreed) {
+      _checkUpdateSilently();
+    }
+  }
+
+  // 新增：同意后保存并进入
+  Future<void> _onAgree() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('user_agreed', true);
+    setState(() {
+      _showAgreement = false;
+    });
     _checkUpdateSilently();
   }
 
@@ -81,7 +109,21 @@ class ZVManagerAppState extends State<ZVManagerApp> {
             builder: (context, child) {
               return BackgroundWidget(
                 key: _bgKey,
-                child: child!,
+                child: Stack(
+                  children: [
+                    child!,
+                    // 新增：用户守则弹窗
+                    if (_isReady && _showAgreement)
+                      Positioned.fill(
+                        child: Container(
+                          color: Colors.black.withOpacity(0.6),
+                          child: Center(
+                            child: UserAgreementDialog(onAgree: _onAgree),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
               );
             },
           );

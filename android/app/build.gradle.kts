@@ -17,11 +17,11 @@ android {
     namespace = "com.driftinblock.zvmanager"
     compileSdk {
         version = release(37) {
-            minorApiLevel = 1
+            minorApiLevel = 2
         }
     }
     buildToolsVersion = "37.0.0"
-    ndkVersion = "30.0.16138531"
+    ndkVersion = "30.0.16248370"
 
     compileOptions {
         isCoreLibraryDesugaringEnabled = true
@@ -35,12 +35,6 @@ android {
         targetSdk = 37
         versionCode = flutter.versionCode
         versionName = flutter.versionName
-
-        // 仅保留 ARMv8 (arm64-v8a)：先清空默认集合再添加，排除 ARMv7 与 x86_64
-        ndk {
-            abiFilters.clear()
-            abiFilters.add("arm64-v8a")
-        }
     }
 
     signingConfigs {
