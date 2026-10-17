@@ -1,0 +1,101 @@
+version: '1.0'
+
+name: flutter-ci
+
+displayName: Flutter 检查与打包
+
+# 触发条件：
+# - 推到 main / dev，以及 feat、fix、ci 开头的分支
+# - 对 main 提 PR 时也跑一遍
+triggers:
+  push:
+    branches:
+      prefix:
+        - feat/
+        - fix/
+        - ci/
+      precise:
+        - main
+        - dev
+  pr:
+    branches:
+      precise:
+        - main
+
+variables:
+  # 与项目工具链对齐：AGP 9.3.1 / Gradle 9.8 / compileSdk 37
+  # 这类新语法要求较新的 Flutter（3.35+），此处锁到 3.38.1
+  FLUTTER_VERSION: '3.38.1'
+  FLUTTER_HOME: '/opt/flutter-sdk'
+
+stages:
+  # ============ 阶段一：静态检查 + 单元测试 ============
+  - stage: analyze
+    displayName: 检查与测试
+    strategy: fast
+    trigger: auto
+    steps:
+      - step: shell@agent
+        name: flutter_check
+        displayName: 安装 Flutter 并执行 analyze / test
+        hostGroupID: gitee-go
+        script: |
+          set -e
+
+          # ---------- 1. 准备 Flutter ----------
+          export PATH="$FLUTTER_HOME/bin:$PATH"
+          if ! command -v flutter >/dev/null 2>&1; then
+            echo "未检测到 Flutter，开始下载 $FLUTTER_VERSION"
+            git clone --depth 1 --branch "$FLUTTER_VERSION" \
+              https://github.com/flutter/flutter.git "$FLUTTER_HOME"
+            export PATH="$FLUTTER_HOME/bin:$PATH"
+          fi
+          flutter --version
+          flutter config --no-analytics
+          flutter config --no-cli-animations
+
+          # ---------- 2. 依赖 ----------
+          flutter pub get
+
+          # ---------- 3. 静态检查 ----------
+          # 只把 error 视为失败；warning/info 打印但不拦截，
+          # 否则历史遗留的 lint 提示会挡住每一次提交
+          flutter analyze --no-pub
+
+          # ---------- 4. 单元测试 ----------
+          flutter test --no-pub --reporter expanded
+
+  # ============ 阶段二：构建 APK ============
+  - stage: build
+    displayName: 构建 APK
+    strategy: fast
+    trigger: auto
+    steps:
+      - step: shell@agent
+        name: flutter_build
+        displayName: 构建 debug APK
+        hostGroupID: gitee-go
+        script: |
+          set -e
+
+          export PATH="$FLUTTER_HOME/bin:$PATH"
+          if ! command -v flutter >/dev/null 2>&1; then
+            git clone --depth 1 --branch "$FLUTTER_VERSION" \
+              https://github.com/flutter/flutter.git "$FLUTTER_HOME"
+            export PATH="$FLUTTER_HOME/bin:$PATH"
+          fi
+
+          flutter --version
+          flutter pub get
+
+          # CI 上没有 keystore（key.properties 已被 gitignore），
+          # 打不出合法 release 包。debug 包同样能验证
+          # 「代码能否编译、Gradle 能否跑通」，这正是 CI 要守的底线。
+          flutter build apk --debug --no-pub
+
+          ls -lh build/app/outputs/flutter-apk/ || true
+
+        artifacts:
+          - name: DEBUG_APK
+            path:
+              - ./build/app/outputs/flutter-apk/app-debug.apk
