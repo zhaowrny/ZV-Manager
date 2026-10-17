@@ -9,7 +9,7 @@ import '../../core/theme/app_theme.dart';
 import '../../core/utils/update_service.dart';
 import '../../core/utils/background_service.dart';
 import '../../providers/theme_provider.dart';
-import '../../app.dart';
+import '../../providers/wallpaper_provider.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -125,7 +125,9 @@ class _SettingsPageState extends State<SettingsPage> {
     final path = await _saveFileToAssets(result.path, 'image');
     if (path == null) return;
 
-    await BackgroundService.setBackground('image', path);
+    if (!mounted) return;
+    // 通过 Provider 落盘并通知，背景层随之交叉淡入
+    await context.read<WallpaperProvider>().setCustomWallpaper(path, type: 'image');
     _refreshUI();
   }
 
@@ -139,7 +141,8 @@ class _SettingsPageState extends State<SettingsPage> {
     final path = await _saveFileToAssets(filePath, 'video');
     if (path == null) return;
 
-    await BackgroundService.setBackground('video', path);
+    if (!mounted) return;
+    await context.read<WallpaperProvider>().setCustomWallpaper(path, type: 'video');
     _refreshUI();
   }
 
@@ -153,6 +156,9 @@ class _SettingsPageState extends State<SettingsPage> {
       final file = File(sourcePath);
       await file.copy(destPath);
 
+      // 换壁纸时清掉上一份（图片与视频都清），否则应用目录会无限膨胀
+      await _cleanupOldBackgrounds(dir.path, keep: destPath);
+
       return destPath;
     } catch (e) {
       print('保存失败: $e');
@@ -165,14 +171,30 @@ class _SettingsPageState extends State<SettingsPage> {
     }
   }
 
+  /// 删除应用目录下除 [keep] 之外的旧壁纸文件。
+  Future<void> _cleanupOldBackgrounds(String dirPath, {required String keep}) async {
+    try {
+      final dir = Directory(dirPath);
+      if (!dir.existsSync()) return;
+      await for (final entity in dir.list()) {
+        if (entity is! File) continue;
+        final name = entity.path.split(Platform.pathSeparator).last;
+        if (!name.startsWith('background_')) continue;
+        if (entity.path == keep) continue;
+        await entity.delete();
+      }
+    } catch (_) {
+      // 清理失败不影响主流程
+    }
+  }
+
   Future<void> _clearBackground() async {
-    await BackgroundService.clearBackground();
+    await context.read<WallpaperProvider>().resetWallpaper();
     _refreshUI();
   }
 
   void _refreshUI() {
     _loadCurrentBg();
-    _refreshBackground();
 
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -182,11 +204,6 @@ class _SettingsPageState extends State<SettingsPage> {
         ),
       );
     }
-  }
-
-  void _refreshBackground() {
-    final appState = context.findAncestorStateOfType<ZVManagerAppState>();
-    appState?.refreshBackground();
   }
 
   // ==================== build ====================

@@ -7,6 +7,7 @@ import '../../providers/server_provider.dart';
 import '../../providers/wallpaper_provider.dart';
 import '../console/console_page.dart';
 import '../settings/settings_page.dart';
+import 'server_card.dart';
 import 'server_form_dialog.dart';
 
 class ServerListPage extends StatefulWidget {
@@ -19,6 +20,7 @@ class ServerListPage extends StatefulWidget {
 class _ServerListPageState extends State<ServerListPage> {
   Timer? _pollTimer;
   final Map<String, ServerStatus> _statusCache = {};
+  final Set<String> _pending = {};
 
   @override
   void initState() {
@@ -35,17 +37,39 @@ class _ServerListPageState extends State<ServerListPage> {
 
   Future<void> _refreshAll() async {
     final servers = context.read<ServerProvider>().servers;
-    for (final server in servers) {
-      if (!mounted) return;
-      unawaited(_checkStatus(server));
-    }
-    if (mounted) setState(() {});
+    await Future.wait(servers.map(_checkStatus));
   }
 
+  /// 查询单台服务器状态。
+  ///
+  /// 只在「首次查询」时进入 loading 态；后续轮询静默替换结果，
+  /// 避免每 5 秒整列表闪一下 loading。
   Future<void> _checkStatus(ServerConfig server) async {
-    final status = await context.read<RconProvider>().checkStatus(server);
-    if (!mounted) return;
-    setState(() => _statusCache[server.id] = status);
+    final id = server.id;
+    if (_pending.contains(id)) return;
+
+    // 首次查询才显示 loading；已有结果时静默刷新，不打断阅读
+    if (!_statusCache.containsKey(id) && mounted) {
+      setState(() => _pending.add(id));
+    } else {
+      _pending.add(id);
+    }
+
+    try {
+      final status = await context.read<RconProvider>().checkStatus(server);
+      if (!mounted) return;
+      setState(() {
+        _statusCache[id] = status;
+        _pending.remove(id);
+      });
+    } catch (_) {
+      // checkStatus 内部已捕获异常，这里兜底，保证卡片不会永远停在 loading
+      if (!mounted) return;
+      setState(() {
+        _statusCache[id] = ServerStatus(online: false);
+        _pending.remove(id);
+      });
+    }
   }
 
   /// 打开控制台：已连接直接进入；否则展示「正在连接」，失败则提示连接失败。
@@ -109,15 +133,66 @@ class _ServerListPageState extends State<ServerListPage> {
     }
   }
 
+
+  /// 计算卡片状态：无缓存且未在请求中 -> loading；有缓存 -> online/offline。
+  ServerCardState _cardStateOf(String id, ServerStatus? status) {
+    if (_pending.contains(id)) return ServerCardState.loading;
+    if (status == null) return ServerCardState.loading;
+    return status.online ? ServerCardState.online : ServerCardState.offline;
+  }
+
+  Future<void> _addServer() async {
+    final server = await showDialog<ServerConfig>(
+      context: context,
+      builder: (_) => const ServerFormDialog(),
+    );
+    if (server == null || !mounted) return;
+    await context.read<ServerProvider>().addServer(server);
+    if (mounted) unawaited(_checkStatus(server));
+  }
+
+  Future<void> _editServer(ServerConfig server) async {
+    final updated = await showDialog<ServerConfig>(
+      context: context,
+      builder: (_) => ServerFormDialog(existingServer: server),
+    );
+    if (updated == null || !mounted) return;
+    await context.read<ServerProvider>().updateServer(updated);
+    if (mounted) unawaited(_checkStatus(updated));
+  }
+
+  Future<void> _deleteServer(ServerConfig server) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('确认删除'),
+        content: Text('确定要删除服务器「${server.name}」吗？'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('取消'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('删除', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    final rconProvider = context.read<RconProvider>();
+    await context.read<ServerProvider>().removeServer(server.id);
+    rconProvider.disposeServer(server.id);
+  }
+
   @override
   Widget build(BuildContext context) {
     final servers = context.watch<ServerProvider>().servers;
-    final theme = Theme.of(context);
     final hasWallpaper = context.watch<WallpaperProvider>().hasWallpaper;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('MCServer Manager'),
+        title: const Text('ZV Manager'),
         backgroundColor: hasWallpaper ? Colors.transparent : null,
         elevation: hasWallpaper ? 0 : null,
         actions: [
@@ -132,170 +207,93 @@ class _ServerListPageState extends State<ServerListPage> {
         ],
       ),
       body: servers.isEmpty
-          ? Center(child: Text('暂无服务器，点击 + 添加', style: theme.textTheme.bodyLarge))
+          ? _EmptyState(onAdd: _addServer)
           : RefreshIndicator(
               onRefresh: _refreshAll,
-              child: ListView.separated(
-                padding: const EdgeInsets.all(12),
+              child: ListView.builder(
+                padding: const EdgeInsets.fromLTRB(14, 8, 14, 96),
                 itemCount: servers.length,
-                separatorBuilder: (_, __) => const SizedBox(height: 8),
-                itemBuilder: (_, i) => _ServerCard(
-                  server: servers[i],
-                  status: _statusCache[servers[i].id],
-                  onTap: () => _openConsole(servers[i]),
-                  onEdit: () async {
-                    final updated = await showDialog<ServerConfig>(
-                      context: context,
-                      builder: (_) => ServerFormDialog(existingServer: servers[i]),
-                    );
-                    if (updated != null && context.mounted) {
-                      await context.read<ServerProvider>().updateServer(updated);
-                    }
-                  },
-                  onDelete: () async {
-                    final confirmed = await showDialog<bool>(
-                      context: context,
-                      builder: (_) => AlertDialog(
-                        title: const Text('确认删除'),
-                        content: Text('确定要删除服务器「${servers[i].name}」吗？'),
-                        actions: [
-                          TextButton(
-                            onPressed: () => Navigator.pop(context, false),
-                            child: const Text('取消'),
-                          ),
-                          TextButton(
-                            onPressed: () => Navigator.pop(context, true),
-                            child: const Text('删除', style: TextStyle(color: Colors.red)),
-                          ),
-                        ],
-                      ),
-                    );
-                    if (confirmed == true && context.mounted) {
-                      final id = servers[i].id;
-                      final rconProvider = context.read<RconProvider>();
-                      await context.read<ServerProvider>().removeServer(id);
-                      rconProvider.disposeServer(id);
-                    }
-                  },
-                ),
+                itemBuilder: (_, i) {
+                  final server = servers[i];
+                  final status = _statusCache[server.id];
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: ServerCard(
+                      // key 绑定服务器 id：增删改后卡片状态不会错位到别的服务器
+                      key: ValueKey(server.id),
+                      name: server.name,
+                      host: server.host,
+                      port: server.port,
+                      state: _cardStateOf(server.id, status),
+                      playerCount: status?.playerCount,
+                      latencyMs: status?.latencyMs,
+                      tps: status?.tps,
+                      onTap: () => _openConsole(server),
+                      onEdit: () => _editServer(server),
+                      onDelete: () => _deleteServer(server),
+                    ),
+                  );
+                },
               ),
             ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () async {
-          final server = await showDialog<ServerConfig>(
-            context: context,
-            builder: (_) => const ServerFormDialog(),
-          );
-          if (server != null && context.mounted) {
-            await context.read<ServerProvider>().addServer(server);
-          }
-        },
-        child: const Icon(Icons.add),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: _addServer,
+        icon: const Icon(Icons.add),
+        label: const Text('添加服务器'),
       ),
     );
   }
 }
 
-// --- 以下内部类保持不变 ---
-
-class _ServerCard extends StatelessWidget {
-  final ServerConfig server;
-  final ServerStatus? status;
-  final VoidCallback onTap;
-  final VoidCallback onEdit;
-  final VoidCallback onDelete;
-
-  const _ServerCard({
-    required this.server,
-    required this.status,
-    required this.onTap,
-    required this.onEdit,
-    required this.onDelete,
-  });
-
-  /// 根据 TPS 值返回状态颜色：≥16 流畅（绿），≥10 略低（橙），否则卡顿（红）。
-  static Color _tpsColor(double tps) {
-    if (tps >= 16) return Colors.green;
-    if (tps >= 10) return Colors.orange;
-    return Colors.red;
-  }
+/// 空列表引导。
+class _EmptyState extends StatelessWidget {
+  final VoidCallback onAdd;
+  const _EmptyState({required this.onAdd});
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isOnline = status?.online ?? false;
-
-    return Card(
-      elevation: isOnline ? 2 : 0.5,
-      color: isOnline ? null : theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(12),
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Row(
-            children: [
-              Container(
-                width: 12,
-                height: 12,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: isOnline ? Colors.greenAccent : Colors.redAccent,
-                  boxShadow: isOnline
-                      ? [BoxShadow(color: Colors.greenAccent.withValues(alpha: 0.4), blurRadius: 6)]
-                      : null,
+    final scheme = theme.colorScheme;
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 84,
+              height: 84,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: scheme.primary.withValues(alpha: 0.08),
+                border: Border.all(
+                  color: scheme.primary.withValues(alpha: 0.18),
                 ),
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(server.name, style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
-                    const SizedBox(height: 4),
-                    Text('${server.host}:${server.port}', style: theme.textTheme.bodySmall),
-                    if (isOnline && status != null) ...[
-                      const SizedBox(height: 2),
-                      Row(
-                        children: [
-                          Text('${status!.latencyMs}ms',
-                              style: theme.textTheme.labelSmall?.copyWith(color: Colors.green)),
-                          if (status!.tps != null) ...[
-                            const SizedBox(width: 8),
-                            Text('TPS ${status!.tps!.toStringAsFixed(1)}',
-                                style: theme.textTheme.labelSmall?.copyWith(color: _tpsColor(status!.tps!))),
-                          ],
-                        ],
-                      ),
-                    ],
-                  ],
-                ),
+              child: Icon(Icons.dns_outlined, size: 36, color: scheme.primary),
+            ),
+            const SizedBox(height: 20),
+            Text(
+              '还没有添加服务器',
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w600,
               ),
-              if (isOnline)
-                Chip(
-                  label: Text('在线${status?.playerCount ?? 0}人'),
-                  visualDensity: VisualDensity.compact,
-                  materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                )
-              else
-                Chip(
-                  label: const Text('离线'),
-                  backgroundColor: theme.colorScheme.errorContainer,
-                  visualDensity: VisualDensity.compact,
-                ),
-              const SizedBox(width: 4),
-              IconButton(
-                icon: Icon(Icons.edit_outlined, color: theme.colorScheme.primary),
-                tooltip: '编辑服务器',
-                onPressed: onEdit,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              '填入主机地址与 RCON 密码，即可在手机上管理',
+              textAlign: TextAlign.center,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: scheme.onSurfaceVariant,
               ),
-              IconButton(
-                icon: Icon(Icons.delete_outline, color: theme.colorScheme.error),
-                tooltip: '删除服务器',
-                onPressed: onDelete,
-              ),
-            ],
-          ),
+            ),
+            const SizedBox(height: 22),
+            FilledButton.icon(
+              onPressed: onAdd,
+              icon: const Icon(Icons.add),
+              label: const Text('添加服务器'),
+            ),
+          ],
         ),
       ),
     );
