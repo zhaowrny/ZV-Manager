@@ -4,7 +4,6 @@ import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'dart:io';
 import '../../providers/wallpaper_provider.dart';
-import '../../app.dart';
 
 class WallpaperSettings extends StatelessWidget {
   const WallpaperSettings({super.key});
@@ -73,9 +72,10 @@ class WallpaperSettings extends StatelessWidget {
               if (image != null && context.mounted) {
                 final savedPath = await _saveFileToAssets(context, image.path);
                 if (savedPath != null && context.mounted) {
+                  // Provider 变更会同步到 BackgroundWidget.spec，
+                  // 背景层自己完成交叉淡入，这里不再需要手动刷新
                   await provider.setCustomWallpaper(savedPath);
                   if (context.mounted) {
-                    _refreshBackground(context);
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(content: Text('壁纸已更新'), backgroundColor: Colors.green),
                     );
@@ -124,6 +124,9 @@ class WallpaperSettings extends StatelessWidget {
       final file = File(sourcePath);
       await file.copy(destPath);
 
+      // 清理旧壁纸，避免每次换图都在应用目录留一份副本
+      await _cleanupOldWallpapers(dir.path, keep: destPath);
+
       return destPath;
     } catch (e) {
       if (context.mounted) {
@@ -135,9 +138,21 @@ class WallpaperSettings extends StatelessWidget {
     }
   }
 
-  void _refreshBackground(BuildContext context) {
-    final appState = context.findAncestorStateOfType<ZVManagerAppState>();
-    appState?.refreshBackground();
+  /// 删除应用目录下除 [keep] 之外的壁纸文件。
+  Future<void> _cleanupOldWallpapers(String dirPath, {required String keep}) async {
+    try {
+      final dir = Directory(dirPath);
+      if (!dir.existsSync()) return;
+      await for (final entity in dir.list()) {
+        if (entity is! File) continue;
+        final name = entity.path.split(Platform.pathSeparator).last;
+        if (!name.startsWith('background_image_')) continue;
+        if (entity.path == keep) continue;
+        await entity.delete();
+      }
+    } catch (_) {
+      // 清理失败不影响主流程
+    }
   }
 
   void _showResetDialog(BuildContext context, WallpaperProvider provider) {
@@ -155,7 +170,6 @@ class WallpaperSettings extends StatelessWidget {
             onPressed: () async {
               await provider.resetWallpaper();
               if (context.mounted) {
-                _refreshBackground(context);
                 Navigator.pop(context);
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(content: Text('已恢复默认壁纸'), backgroundColor: Colors.green),
