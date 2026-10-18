@@ -87,6 +87,10 @@ class BackgroundWidgetState extends State<BackgroundWidget>
     super.initState();
     WidgetsBinding.instance.addObserver(this);
 
+    // 订阅壁纸变更：没有这一步，设置页改完壁纸，
+    // 背景层收不到任何通知，界面就永远停在旧图上。
+    BackgroundWidget.spec.addListener(_onSpecChanged);
+
     // 关键：不能在这里同步调用 _apply()。
     // _buildLayer() 内部要用 precacheImage(provider, context)，
     // 而 initState 阶段 context 尚未挂载到渲染树，precacheImage 会抛异常，
@@ -96,6 +100,12 @@ class BackgroundWidgetState extends State<BackgroundWidget>
       if (!mounted) return;
       _apply(BackgroundWidget.spec.value, animate: false);
     });
+  }
+
+  /// spec 变化：切换到新壁纸（带动画）。
+  void _onSpecChanged() {
+    if (!mounted) return;
+    _apply(BackgroundWidget.spec.value, animate: true);
   }
 
   @override
@@ -226,6 +236,7 @@ class BackgroundWidgetState extends State<BackgroundWidget>
   @override
   void dispose() {
     _requestSeq++; // 让在途请求失效
+    BackgroundWidget.spec.removeListener(_onSpecChanged);
     WidgetsBinding.instance.removeObserver(this);
     _active?.dispose();
     _incoming?.dispose();
