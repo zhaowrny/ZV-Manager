@@ -86,7 +86,16 @@ class BackgroundWidgetState extends State<BackgroundWidget>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    _apply(BackgroundWidget.spec.value, animate: false);
+
+    // 关键：不能在这里同步调用 _apply()。
+    // _buildLayer() 内部要用 precacheImage(provider, context)，
+    // 而 initState 阶段 context 尚未挂载到渲染树，precacheImage 会抛异常，
+    // 异常在首帧前抛出会导致整个应用白屏。
+    // 因此推迟到首帧之后再开始加载壁纸。
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _apply(BackgroundWidget.spec.value, animate: false);
+    });
   }
 
   @override
@@ -109,6 +118,8 @@ class BackgroundWidgetState extends State<BackgroundWidget>
 
   Future<_Layer?> _buildLayer(BackgroundSpec spec) async {
     if (spec.isEmpty) return null;
+    // 组件已销毁或尚未挂载时不碰 context，避免 precacheImage 抛异常
+    if (!mounted) return null;
     final file = File(spec.path!);
     if (!file.existsSync()) return null;
 
@@ -133,10 +144,13 @@ class BackgroundWidgetState extends State<BackgroundWidget>
       final provider = FileImage(file);
       try {
         // 解码进图片缓存，保证合成上去的第一帧就是完整画面
-        await precacheImage(provider, context);
+        if (mounted) {
+          await precacheImage(provider, context);
+        }
       } catch (e) {
+        // 预加载失败不影响使用：Image 自己会异步解码。
+        // 这里绝不能把异常抛出去，否则首帧渲染中断 → 白屏。
         debugPrint('壁纸图片预加载失败: $e');
-        return null;
       }
       return _Layer.image(provider);
     }

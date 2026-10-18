@@ -20,7 +20,15 @@ class ZVManagerApp extends StatefulWidget {
   /// 由 main() 传入已预加载的实例，避免在树里重建导致状态不同步。
   final WallpaperProvider wallpaperProvider;
 
-  const ZVManagerApp({super.key, required this.wallpaperProvider});
+  /// 启动数据是否已加载完成。未完成时不弹用户守则，
+  /// 避免弹窗盖在一个还没数据的空列表上。
+  final bool booted;
+
+  const ZVManagerApp({
+    super.key,
+    required this.wallpaperProvider,
+    this.booted = true,
+  });
 
   @override
   State<ZVManagerApp> createState() => ZVManagerAppState();
@@ -118,7 +126,7 @@ class ZVManagerAppState extends State<ZVManagerApp> {
                   children: [
                     child,
                     // 新增：用户守则弹窗
-                    if (_isReady && _showAgreement)
+                    if (widget.booted && _isReady && _showAgreement)
                       Positioned.fill(
                         child: Container(
                           // withOpacity 在新版 Flutter 已废弃，统一用 withValues
