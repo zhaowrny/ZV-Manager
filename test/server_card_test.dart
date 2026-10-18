@@ -109,16 +109,23 @@ void main() {
         ),
       ));
 
+      // 在线态的状态圆点是无限循环动画，pumpAndSettle 永远不会结束。
+      // 这里改为推进固定时长，足够让弹出菜单的开/关动画走完。
+      Future<void> settleMenu() async {
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 500));
+      }
+
       await tester.tap(find.byIcon(Icons.more_vert));
-      await tester.pumpAndSettle();
+      await settleMenu();
       await tester.tap(find.text('编辑'));
-      await tester.pumpAndSettle();
+      await settleMenu();
       expect(edited, isTrue);
 
       await tester.tap(find.byIcon(Icons.more_vert));
-      await tester.pumpAndSettle();
+      await settleMenu();
       await tester.tap(find.text('删除'));
-      await tester.pumpAndSettle();
+      await settleMenu();
       expect(deleted, isTrue);
     });
 

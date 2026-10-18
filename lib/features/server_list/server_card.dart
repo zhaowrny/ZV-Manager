@@ -1,5 +1,3 @@
-import 'dart:ui' show FontFeature;
-
 import 'package:flutter/material.dart';
 
 /// 服务器卡片的数据状态。
@@ -252,6 +250,7 @@ class ServerCard extends StatelessWidget {
   }
 
   Widget _buildMetrics(BuildContext context, ColorScheme scheme) {
+    final theme = Theme.of(context);
     final online = state == ServerCardState.online;
 
     if (state == ServerCardState.loading) {

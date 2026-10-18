@@ -122,6 +122,7 @@ class ZVManagerAppState extends State<ZVManagerApp> {
             builder: (context, child) {
               child ??= const SizedBox.shrink();
               return BackgroundWidget(
+                key: backgroundWidgetKey,
                 child: Stack(
                   children: [
                     child,

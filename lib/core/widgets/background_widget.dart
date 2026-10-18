@@ -40,6 +40,14 @@ class _Layer {
   Future<void> dispose() async => video?.dispose();
 }
 
+/// 背景层全局 Key。
+///
+/// 背景层挂在 `MaterialApp.builder` 顶层（见 `app.dart`），普通页面通过
+/// `context` 拿不到它的 State；这个 Key 提供了稳定的访问入口，例如设置页
+/// 切换「视频声音」开关后立即调整当前视频的音量。
+final GlobalKey<BackgroundWidgetState> backgroundWidgetKey =
+    GlobalKey<BackgroundWidgetState>();
+
 /// 全局壁纸背景。
 ///
 /// 原实现切壁纸会闪屏，原因有三条，这里逐一解决：
@@ -87,6 +95,10 @@ class BackgroundWidgetState extends State<BackgroundWidget>
     super.initState();
     WidgetsBinding.instance.addObserver(this);
 
+    // spec 是背景层的数据源：启动预加载完成、或设置页切换壁纸时，
+    // 都由 main.dart 写入新值，这里监听并交叉淡入到新图层。
+    BackgroundWidget.spec.addListener(_onSpecChanged);
+
     // 关键：不能在这里同步调用 _apply()。
     // _buildLayer() 内部要用 precacheImage(provider, context)，
     // 而 initState 阶段 context 尚未挂载到渲染树，precacheImage 会抛异常，
@@ -113,6 +125,22 @@ class BackgroundWidgetState extends State<BackgroundWidget>
 
   /// 外部入口：按 `spec` 最新值切换壁纸。
   void refreshBackground() => _apply(BackgroundWidget.spec.value, animate: true);
+
+  void _onSpecChanged() {
+    if (!mounted) return;
+    refreshBackground();
+  }
+
+  /// 外部入口：视频声音开关变化后立即应用，无需重建图层。
+  void applyVideoSound(bool enabled) {
+    final volume = enabled ? 1.0 : 0.0;
+    for (final layer in [_active, _incoming]) {
+      final video = layer?.video;
+      if (video != null && video.value.isInitialized) {
+        video.setVolume(volume);
+      }
+    }
+  }
 
   static String _keyOf(BackgroundSpec s) => s.isEmpty ? 'none' : '${s.type}:${s.path}';
 
@@ -226,6 +254,7 @@ class BackgroundWidgetState extends State<BackgroundWidget>
   @override
   void dispose() {
     _requestSeq++; // 让在途请求失效
+    BackgroundWidget.spec.removeListener(_onSpecChanged);
     WidgetsBinding.instance.removeObserver(this);
     _active?.dispose();
     _incoming?.dispose();

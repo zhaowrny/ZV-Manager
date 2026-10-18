@@ -8,6 +8,7 @@ import 'package:path_provider/path_provider.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/utils/update_service.dart';
 import '../../core/utils/background_service.dart';
+import '../../core/widgets/background_widget.dart';
 import '../../providers/theme_provider.dart';
 import '../../providers/wallpaper_provider.dart';
 
@@ -161,7 +162,7 @@ class _SettingsPageState extends State<SettingsPage> {
 
       return destPath;
     } catch (e) {
-      print('保存失败: $e');
+      debugPrint('保存失败: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('保存失败，请重试')),
@@ -255,7 +256,8 @@ class _SettingsPageState extends State<SettingsPage> {
               onChanged: (value) async {
                 await BackgroundService.setVideoSound(value);
                 setState(() => _videoSoundEnabled = value);
-                _refreshBackground();
+                // 立即应用到正在播放的背景视频，无需重建图层
+                backgroundWidgetKey.currentState?.applyVideoSound(value);
               },
             ),
           ],
