@@ -128,8 +128,7 @@ class _SettingsPageState extends State<SettingsPage> {
 
     if (!mounted) return;
     // 通过 Provider 落盘并通知，背景层随之交叉淡入
-    await context.read<WallpaperProvider>().setCustomWallpaper(path, type: 'image');
-    _refreshUI();
+    if (await _applyWallpaper(path, 'image')) _refreshUI();
   }
 
   Future<void> _pickVideo() async {
@@ -143,8 +142,24 @@ class _SettingsPageState extends State<SettingsPage> {
     if (path == null) return;
 
     if (!mounted) return;
-    await context.read<WallpaperProvider>().setCustomWallpaper(path, type: 'video');
-    _refreshUI();
+    if (await _applyWallpaper(path, 'video')) _refreshUI();
+  }
+
+  /// 落盘壁纸设置。失败时给出可见提示，避免「点了没反应」式的静默失败
+  /// （例如 release 包把插件方法混淆掉、SharedPreferences 整体不可用时）。
+  Future<bool> _applyWallpaper(String path, String type) async {
+    try {
+      await context.read<WallpaperProvider>().setCustomWallpaper(path, type: type);
+      return true;
+    } catch (e) {
+      debugPrint('保存壁纸设置失败: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('壁纸设置保存失败，请重试')),
+        );
+      }
+      return false;
+    }
   }
 
   Future<String?> _saveFileToAssets(String sourcePath, String type) async {
