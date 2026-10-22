@@ -8,13 +8,26 @@ class ServerConfig {
   final int port;
   final String password;
 
+  /// SSH（SFTP / 终端）可选配置，纯 RCON 用户可留空。
+  final bool sshEnabled;
+  final int sshPort;
+  final String sshUser;
+  final String sshPassword;
+
   ServerConfig({
     required this.id,
     required this.name,
     required this.host,
     required this.port,
     required this.password,
+    this.sshEnabled = false,
+    this.sshPort = 22,
+    this.sshUser = '',
+    this.sshPassword = '',
   });
+
+  /// 是否具备模组/终端功能所需的 SSH 配置。
+  bool get hasSsh => sshEnabled && sshUser.isNotEmpty;
 
   Map<String, dynamic> toJson() => {
         'id': id,
@@ -22,6 +35,10 @@ class ServerConfig {
         'host': host,
         'port': port,
         'password': password,
+        'sshEnabled': sshEnabled,
+        'sshPort': sshPort,
+        'sshUser': sshUser,
+        'sshPassword': sshPassword,
       };
 
   factory ServerConfig.fromJson(Map<String, dynamic> json) => ServerConfig(
@@ -30,6 +47,10 @@ class ServerConfig {
         host: json['host'],
         port: json['port'],
         password: json['password'],
+        sshEnabled: json['sshEnabled'] ?? false,
+        sshPort: json['sshPort'] ?? 22,
+        sshUser: json['sshUser'] ?? '',
+        sshPassword: json['sshPassword'] ?? '',
       );
 }
 
@@ -59,6 +80,15 @@ class ServerProvider extends ChangeNotifier {
     _servers.removeWhere((s) => s.id == id);
     await _save();
     notifyListeners();
+  }
+
+  ServerConfig? byId(String? id) {
+    if (id == null) return null;
+    try {
+      return _servers.firstWhere((s) => s.id == id);
+    } catch (_) {
+      return null;
+    }
   }
 
   Future<void> _save() async {

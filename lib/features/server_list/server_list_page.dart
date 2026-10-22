@@ -265,9 +265,9 @@ class _EmptyState extends StatelessWidget {
               height: 84,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: scheme.primary.withValues(alpha: 0.08),
+                color: scheme.primary.withOpacity(0.08),
                 border: Border.all(
-                  color: scheme.primary.withValues(alpha: 0.18),
+                  color: scheme.primary.withOpacity(0.18),
                 ),
               ),
               child: Icon(Icons.dns_outlined, size: 36, color: scheme.primary),

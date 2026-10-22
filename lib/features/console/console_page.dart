@@ -166,7 +166,7 @@ class _ConsolePageState extends State<ConsolePage> {
             child: Container(
               width: double.infinity,
               padding: const EdgeInsets.all(12),
-              color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+              color: theme.colorScheme.surfaceContainerHighest.withOpacity(0.3),
               child: ListView.builder(
                 controller: _scrollController,
                 itemCount: _outputLines.length,
@@ -181,7 +181,8 @@ class _ConsolePageState extends State<ConsolePage> {
                           ? theme.colorScheme.error
                           : line.isCommand
                               ? theme.colorScheme.primary
-                              : theme.colorScheme.onSurface,
+                              // 按日志级别前缀着色：WARN 黄 / ERROR 红 / INFO 绿
+                              : _logLevelColor(line.text) ?? theme.colorScheme.onSurface,
                     ),
                   );
                 },
@@ -242,6 +243,22 @@ class _LogLine {
   _LogLine({required this.text, this.isCommand = false, this.isError = false});
 }
 
+/// 按日志前缀识别级别并返回对应颜色（INFO 绿 / WARN 黄 / ERROR 红）。
+Color? _logLevelColor(String text) {
+  final upper = text.toUpperCase();
+  // 兼容 [WARN]、[WARN/...]、WARN : 等常见格式
+  if (upper.contains('ERROR') || upper.contains('FATAL') || upper.contains('SEVERE')) {
+    return Colors.red;
+  }
+  if (upper.contains(RegExp(r'\bWARN(ING)?\b'))) {
+    return Colors.orange;
+  }
+  if (upper.contains(RegExp(r'\bINFO\b'))) {
+    return Colors.green;
+  }
+  return null;
+}
+
 /// 快速命令预设栏：横向滚动的预设按钮 + 管理入口。
 class _PresetBar extends StatelessWidget {
   final List<QuickCommandPreset> presets;
@@ -273,7 +290,7 @@ class _PresetBar extends StatelessWidget {
                   label: Text(preset.label),
                   labelStyle: TextStyle(fontSize: 13, color: theme.colorScheme.onSecondaryContainer),
                   visualDensity: VisualDensity.compact,
-                  backgroundColor: theme.colorScheme.secondaryContainer.withValues(alpha: 0.5),
+                  backgroundColor: theme.colorScheme.secondaryContainer.withOpacity(0.5),
                   onPressed: () => onSend(preset.command),
                 );
               },

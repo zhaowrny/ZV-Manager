@@ -310,7 +310,7 @@ class BackgroundWidgetState extends State<BackgroundWidget>
           ),
 
         if (showingVideo)
-          IgnorePointer(child: ColoredBox(color: Colors.black.withValues(alpha: 0.3))),
+          IgnorePointer(child: ColoredBox(color: Colors.black.withOpacity(0.3))),
 
         _wrapWithTransparentTheme(widget.child),
       ],

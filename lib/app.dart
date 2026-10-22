@@ -9,9 +9,12 @@ import 'core/utils/update_service.dart';
 import 'core/widgets/background_widget.dart';
 import 'providers/wallpaper_provider.dart';
 import 'core/widgets/user_agreement_dialog.dart';  //  新增
-import 'features/server_list/server_list_page.dart';
+import 'features/shell/main_shell.dart';
 import 'providers/theme_provider.dart';
 import 'providers/server_provider.dart';
+import 'providers/rcon_provider.dart';
+import 'providers/download_provider.dart';
+import 'features/dashboard/server_picker_bar.dart';
 
 /// 全局导航 Key
 final navigatorKey = GlobalKey<NavigatorState>();
@@ -94,6 +97,9 @@ class ZVManagerAppState extends State<ZVManagerApp> {
       providers: [
         ChangeNotifierProvider(create: (_) => ThemeProvider()),
         ChangeNotifierProvider(create: (_) => ServerProvider()),
+        ChangeNotifierProvider(create: (_) => RconProvider()),
+        ChangeNotifierProvider(create: (_) => DownloadProvider()),
+        ChangeNotifierProvider(create: (_) => SelectedServerHolder()),
         // 复用 main() 中预加载的实例，不能在这里 create 一个新的
         ChangeNotifierProvider<WallpaperProvider>.value(
           value: widget.wallpaperProvider,
@@ -118,7 +124,7 @@ class ZVManagerAppState extends State<ZVManagerApp> {
               Locale('zh', 'CN'),
               Locale('en', 'US'),
             ],
-            home: const ServerListPage(),
+            home: const MainShell(),
             builder: (context, child) {
               child ??= const SizedBox.shrink();
               return BackgroundWidget(
@@ -131,7 +137,7 @@ class ZVManagerAppState extends State<ZVManagerApp> {
                       Positioned.fill(
                         child: Container(
                           // withOpacity 在新版 Flutter 已废弃，统一用 withValues
-                          color: Colors.black.withValues(alpha: 0.6),
+                          color: Colors.black.withOpacity(0.6),
                           child: Center(
                             child: UserAgreementDialog(onAgree: _onAgree),
                           ),

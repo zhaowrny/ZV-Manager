@@ -17,6 +17,12 @@ class _ServerFormDialogState extends State<ServerFormDialog> {
   late TextEditingController _portCtrl;
   late TextEditingController _passCtrl;
   bool _obscurePassword = true;
+  // SSH 可选配置（模组管理 / 终端需要）
+  bool _sshEnabled = false;
+  bool _obscureSshPassword = true;
+  late TextEditingController _sshPortCtrl;
+  late TextEditingController _sshUserCtrl;
+  late TextEditingController _sshPasswordCtrl;
 
   bool get isEditing => widget.existingServer != null;
 
@@ -28,6 +34,10 @@ class _ServerFormDialogState extends State<ServerFormDialog> {
     _hostCtrl = TextEditingController(text: s?.host ?? '');
     _portCtrl = TextEditingController(text: s?.port.toString() ?? '25575');
     _passCtrl = TextEditingController(text: s?.password ?? '');
+    _sshEnabled = s?.sshEnabled ?? false;
+    _sshPortCtrl = TextEditingController(text: s?.sshPort.toString() ?? '22');
+    _sshUserCtrl = TextEditingController(text: s?.sshUser ?? '');
+    _sshPasswordCtrl = TextEditingController(text: s?.sshPassword ?? '');
   }
 
   @override
@@ -36,6 +46,9 @@ class _ServerFormDialogState extends State<ServerFormDialog> {
     _hostCtrl.dispose();
     _portCtrl.dispose();
     _passCtrl.dispose();
+    _sshPortCtrl.dispose();
+    _sshUserCtrl.dispose();
+    _sshPasswordCtrl.dispose();
     super.dispose();
   }
 
@@ -60,6 +73,10 @@ class _ServerFormDialogState extends State<ServerFormDialog> {
       host: _hostCtrl.text.trim(),
       port: int.parse(_portCtrl.text.trim()),
       password: _passCtrl.text,
+      sshEnabled: _sshEnabled,
+      sshPort: int.tryParse(_sshPortCtrl.text.trim()) ?? 22,
+      sshUser: _sshUserCtrl.text.trim(),
+      sshPassword: _sshPasswordCtrl.text,
     );
 
     Navigator.pop(context, server);
@@ -111,6 +128,51 @@ class _ServerFormDialogState extends State<ServerFormDialog> {
                 textInputAction: TextInputAction.done,
                 onFieldSubmitted: (_) => _submit(),
               ),
+              const SizedBox(height: 8),
+              SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                title: const Text('SSH 连接（可选）'),
+                subtitle: const Text('用于模组插件管理与远程终端'),
+                value: _sshEnabled,
+                onChanged: (v) => setState(() => _sshEnabled = v),
+              ),
+              if (_sshEnabled) ...[
+                TextFormField(
+                  controller: _sshPortCtrl,
+                  decoration: const InputDecoration(labelText: 'SSH 端口', hintText: '默认 22'),
+                  keyboardType: TextInputType.number,
+                  validator: (v) {
+                    if (!_sshEnabled) return null;
+                    return _validatePort(v);
+                  },
+                  textInputAction: TextInputAction.next,
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: _sshUserCtrl,
+                  decoration: const InputDecoration(labelText: 'SSH 用户名', hintText: '例如 root'),
+                  validator: (v) => _sshEnabled ? _validateRequired(v, 'SSH 用户名') : null,
+                  textInputAction: TextInputAction.next,
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: _sshPasswordCtrl,
+                  obscureText: _obscureSshPassword,
+                  decoration: InputDecoration(
+                    labelText: 'SSH 密码',
+                    suffixIcon: IconButton(
+                      icon: Icon(_obscureSshPassword
+                          ? Icons.visibility_off_outlined
+                          : Icons.visibility_outlined),
+                      onPressed: () =>
+                          setState(() => _obscureSshPassword = !_obscureSshPassword),
+                    ),
+                  ),
+                  validator: (v) => _sshEnabled ? _validateRequired(v, 'SSH 密码') : null,
+                  textInputAction: TextInputAction.done,
+                  onFieldSubmitted: (_) => _submit(),
+                ),
+              ],
             ],
           ),
         ),

@@ -87,7 +87,7 @@ class ServerCard extends StatelessWidget {
 
     // 卡片底色跟随主题表面色，浮一层极淡的品牌色，避免纯白/纯黑显得生硬。
     final Color base = Color.alphaBlend(
-      scheme.primary.withValues(alpha: online ? 0.06 : 0.02),
+      scheme.primary.withOpacity(online ? 0.06 : 0.02),
       scheme.surface,
     );
 
@@ -102,13 +102,13 @@ class ServerCard extends StatelessWidget {
             color: base,
             border: Border.all(
               color: online
-                  ? scheme.primary.withValues(alpha: 0.38)
-                  : scheme.outlineVariant.withValues(alpha: 0.55),
+                  ? scheme.primary.withOpacity(0.38)
+                  : scheme.outlineVariant.withOpacity(0.55),
               width: online ? 1.4 : 1,
             ),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withValues(alpha: online ? 0.08 : 0.04),
+                color: Colors.black.withOpacity(online ? 0.08 : 0.04),
                 blurRadius: online ? 18 : 10,
                 offset: const Offset(0, 6),
               ),
@@ -158,9 +158,9 @@ class ServerCard extends StatelessWidget {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
           decoration: BoxDecoration(
-            color: _statusColor.withValues(alpha: 0.13),
+            color: _statusColor.withOpacity(0.13),
             borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: _statusColor.withValues(alpha: 0.28)),
+            border: Border.all(color: _statusColor.withOpacity(0.28)),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
@@ -177,7 +177,7 @@ class ServerCard extends StatelessWidget {
                 Text(
                   '${latencyMs}ms',
                   style: theme.textTheme.labelSmall?.copyWith(
-                    color: _statusColor.withValues(alpha: 0.75),
+                    color: _statusColor.withOpacity(0.75),
                     fontFeatures: const [FontFeature.tabularFigures()],
                   ),
                 ),
@@ -393,7 +393,7 @@ class _StatusDotState extends State<_StatusDot>
             color: widget.color,
             boxShadow: [
               BoxShadow(
-                color: widget.color.withValues(alpha: glow),
+                color: widget.color.withOpacity(glow),
                 blurRadius: 10,
                 spreadRadius: 3,
               ),
@@ -422,8 +422,8 @@ class _Pill extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final bg = emphasized
-        ? color.withValues(alpha: 0.14)
-        : color.withValues(alpha: 0.08);
+        ? color.withOpacity(0.14)
+        : color.withOpacity(0.08);
 
     final content = Container(
       padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),

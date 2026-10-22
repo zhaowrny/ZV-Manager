@@ -1,0 +1,72 @@
+import 'package:flutter/material.dart';
+import '../mod_manager/mod_provider.dart';
+
+/// 模组详情页：展示 jar 元数据（名称 / 版本 / 作者 / 依赖 / 描述）。
+class ModDetailPage extends StatelessWidget {
+  final RemoteJarFile file;
+  final ModProvider provider;
+
+  const ModDetailPage({super.key, required this.file, required this.provider});
+
+  @override
+  Widget build(BuildContext context) {
+    final meta = file.meta;
+    return Scaffold(
+      appBar: AppBar(title: Text(file.fileName)),
+      body: ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          ListTile(
+            leading: const Icon(Icons.extension),
+            title: Text(meta.name ?? '未知名称',
+                style: Theme.of(context).textTheme.titleLarge),
+            subtitle: Text('版本 ${meta.version ?? '未知'}'),
+          ),
+          const Divider(),
+          _kv('文件名', file.fileName),
+          _kv('大小', _fmtSize(file.size)),
+          _kv('修改时间', '${file.mtime.toLocal()}'),
+          _kv('作者', meta.authors ?? '未知'),
+          _kv('元数据来源', meta.source),
+          if (meta.description != null) _kv('描述', meta.description!),
+          const Divider(),
+          Text('硬依赖', style: Theme.of(context).textTheme.titleMedium),
+          const SizedBox(height: 4),
+          if (meta.depends.isEmpty)
+            const Text('无')
+          else
+            Wrap(
+              spacing: 6,
+              children: meta.depends
+                  .map((d) => Chip(label: Text(d)))
+                  .toList(),
+            ),
+          const SizedBox(height: 12),
+          Text('软依赖', style: Theme.of(context).textTheme.titleMedium),
+          const SizedBox(height: 4),
+          if (meta.softDepends.isEmpty)
+            const Text('无')
+          else
+            Wrap(spacing: 6, children: meta.softDepends.map((d) => Chip(label: Text(d))).toList()),
+        ],
+      ),
+    );
+  }
+
+  Widget _kv(String k, String v) => Padding(
+        padding: const EdgeInsets.symmetric(vertical: 4),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SizedBox(width: 96, child: Text(k, style: const TextStyle(fontWeight: FontWeight.w600))),
+            Expanded(child: Text(v)),
+          ],
+        ),
+      );
+
+  String _fmtSize(int bytes) {
+    if (bytes < 1024) return '$bytes B';
+    if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(1)} KB';
+    return '${(bytes / 1024 / 1024).toStringAsFixed(1)} MB';
+  }
+}
