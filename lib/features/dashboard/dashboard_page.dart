@@ -90,7 +90,7 @@ class _DashboardPageState extends State<DashboardPage> {
           children: [
             const Icon(Icons.warning_amber_rounded, color: Colors.white),
             const SizedBox(width: 8),
-            Expanded(child: Text('⚠️ 服务器「$serverName」已断开连接！')),
+            Expanded(child: Text('服务器「$serverName」已断开连接！')),
           ],
         ),
         action: SnackBarAction(

@@ -69,7 +69,7 @@ class _UserAgreementDialogState extends State<UserAgreementDialog> {
             mainAxisSize: MainAxisSize.min,
             children: [
               // 图标
-              const Text('📜', style: TextStyle(fontSize: 48)),
+              const Icon(Icons.menu_book_outlined, size: 48),
               const SizedBox(height: 12),
 
               // 标题

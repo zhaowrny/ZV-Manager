@@ -69,7 +69,7 @@ class HelpPage extends StatelessWidget {
               '下载完成且配置了 SSH 时，会自动上传到服务器的 mods/plugins 目录',
             ],
             tips: [
-              '国内网络慢时：点右上角 ⚡ 图标 →「一键测速并选择最快线路」，或改用自定义镜像地址',
+              '国内网络慢时：点右上角测速图标 →「一键测速并选择最快线路」，或改用自定义镜像地址',
               '默认使用 MCIM 国内镜像，无需科学上网',
             ],
           ),
@@ -92,11 +92,11 @@ class HelpPage extends StatelessWidget {
             icon: Icons.account_tree,
             title: '六、依赖仓库（查询模组依赖）',
             steps: [
-              '进入「模组」页签 → 右上角 ⚙ 依赖仓库',
+              '进入「模组」页签 → 右上角依赖仓库',
               '点「同步」扫描服务器 mods/plugins，建立本地依赖索引',
               '点击任意模组查看：它依赖什么、被谁依赖、缺失哪些依赖',
               '缺失依赖可一键从 Modrinth 下载补齐',
-              '点右上角 ⚠ 可检测重复安装 / 版本冲突的 jar',
+              '点右上角重复检测按钮重复安装 / 版本冲突的 jar',
             ],
           ),
           _TutorialCard(
@@ -184,8 +184,7 @@ class _TutorialCard extends StatelessWidget {
                 children: tips
                     .map((t) => Padding(
                           padding: const EdgeInsets.symmetric(vertical: 2),
-                          child: Text('💡 $t',
-                              style: theme.textTheme.bodySmall),
+                          child: Text(t, style: theme.textTheme.bodySmall),
                         ))
                     .toList(),
               ),

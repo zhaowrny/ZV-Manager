@@ -216,7 +216,7 @@ class _SettingsPageState extends State<SettingsPage> {
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(_currentBgPath == null ? '已清除背景' : '背景已更新 ✅'),
+          content: Text(_currentBgPath == null ? '已清除背景' : '背景已更新 '),
           duration: const Duration(seconds: 1),
         ),
       );
