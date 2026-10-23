@@ -11,6 +11,7 @@ import '../../core/utils/background_service.dart';
 import '../../core/widgets/background_widget.dart';
 import '../../providers/theme_provider.dart';
 import '../../providers/wallpaper_provider.dart';
+import 'help_page.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -276,6 +277,19 @@ class _SettingsPageState extends State<SettingsPage> {
               },
             ),
           ],
+          const Divider(),
+
+          // ---------- 使用教程 ----------
+          ListTile(
+            leading: const Icon(Icons.menu_book_outlined),
+            title: const Text('使用教程'),
+            subtitle: const Text('如何开启 RCON / SSH、模组管理、下载与终端'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const HelpPage()),
+            ),
+          ),
           const Divider(),
 
           // ---------- 检查更新 ----------
