@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/foundation.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:path_provider/path_provider.dart';
 import '../../core/services/download_manager.dart';
 import '../../core/services/modrinth_api.dart';
@@ -19,7 +20,20 @@ class DownloadProvider extends ChangeNotifier {
 
   Future<void> init() async {
     await mirror.load();
+    // 读取持久化的并发数
+    final prefs = await SharedPreferences.getInstance();
+    final c = prefs.getInt('download_concurrency');
+    if (c != null) manager.setConcurrency(c);
   }
+
+  /// 设置并发数并持久化。
+  Future<void> setConcurrency(int n) async {
+    manager.setConcurrency(n);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt('download_concurrency', n);
+  }
+
+  int get concurrency => manager.maxConcurrent;
 
   /// 搜索 Modrinth。
   Future<List<ModrinthSearchResult>> search(

@@ -36,7 +36,7 @@ class DownloadTask {
 /// + 失败重试（指数退避）+ 完成后经 SFTP 自动上传。
 /// HTTP IO 由 dio 在其内部线程池执行，进度经节流回调到 UI，不阻塞主线程。
 class DownloadManager extends ChangeNotifier {
-  final int maxConcurrent;
+  int maxConcurrent;
   final List<DownloadTask> _tasks = [];
   final Map<String, CancelToken> _cancelTokens = {};
   final Map<String, bool> _pauseFlags = {};
@@ -49,6 +49,13 @@ class DownloadManager extends ChangeNotifier {
           connectTimeout: const Duration(seconds: 15),
           receiveTimeout: const Duration(minutes: 10),
         ));
+
+  /// 修改并发数（设置页可调），立即生效。
+  void setConcurrency(int n) {
+    if (n < 1 || n > 6) return;
+    maxConcurrent = n;
+    _pump();
+  }
 
   List<DownloadTask> get tasks => List.unmodifiable(_tasks);
   int get activeCount => _running.length;

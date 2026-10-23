@@ -12,6 +12,7 @@ import '../../core/widgets/background_widget.dart';
 import '../../providers/theme_provider.dart';
 import '../../providers/wallpaper_provider.dart';
 import 'help_page.dart';
+import 'download_settings_page.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -277,6 +278,19 @@ class _SettingsPageState extends State<SettingsPage> {
               },
             ),
           ],
+          const Divider(),
+
+          // ---------- 下载与镜像 ----------
+          ListTile(
+            leading: const Icon(Icons.download_outlined),
+            title: const Text('下载与镜像设置'),
+            subtitle: const Text('镜像线路、测速选线、同时下载任务数'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const DownloadSettingsPage()),
+            ),
+          ),
           const Divider(),
 
           // ---------- 使用教程 ----------

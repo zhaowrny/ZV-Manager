@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../../core/services/modrinth_api.dart';
 import '../../providers/download_provider.dart';
 import '../../core/services/download_manager.dart';
+import '../settings/download_settings_page.dart';
 
 /// 下载中心：Modrinth 搜索 + 镜像线路选择 + 下载任务队列（M2）。
 class DownloadPage extends StatefulWidget {
@@ -67,9 +68,12 @@ class _DownloadPageState extends State<DownloadPage> {
           title: const Text('下载中心'),
           actions: [
             IconButton(
-              icon: const Icon(Icons.speed),
-              tooltip: '镜像线路：${dp.mirror.currentName}',
-              onPressed: _showMirrorDialog,
+              icon: const Icon(Icons.settings_outlined),
+              tooltip: '下载与镜像设置',
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const DownloadSettingsPage()),
+              ),
             ),
           ],
           bottom: const TabBar(tabs: [Tab(text: '搜索下载'), Tab(text: '任务队列')]),
@@ -317,80 +321,5 @@ class _DownloadPageState extends State<DownloadPage> {
     return '${(bytes / 1024 / 1024).toStringAsFixed(1)} MB';
   }
 
-  Future<void> _showMirrorDialog() async {
-    final dp = context.read<DownloadProvider>();
-    final mirror = dp.mirror;
-    await showDialog(
-      context: context,
-      builder: (_) => StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
-          title: const Text('镜像线路'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              RadioListTile<String>(
-                title: const Text('Modrinth 官方'),
-                value: 'official',
-                groupValue: mirror.currentId,
-                onChanged: (v) async {
-                  await mirror.select(v!);
-                  setDialogState(() {});
-                },
-              ),
-              RadioListTile<String>(
-                title: const Text('MCIM 国内镜像'),
-                value: 'mcim',
-                groupValue: mirror.currentId,
-                onChanged: (v) async {
-                  await mirror.select(v!);
-                  setDialogState(() {});
-                },
-              ),
-              RadioListTile<String>(
-                title: const Text('自定义镜像'),
-                value: 'custom',
-                groupValue: mirror.currentId,
-                onChanged: (v) async {
-                  final ctrl = TextEditingController(text: mirror.customUrl);
-                  final url = await showDialog<String>(
-                    context: context,
-                    builder: (_) => AlertDialog(
-                      title: const Text('自定义镜像地址'),
-                      content: TextField(controller: ctrl, decoration: const InputDecoration(hintText: 'https://your-mirror.example.com')),
-                      actions: [
-                        TextButton(onPressed: () => Navigator.pop(context), child: const Text('取消')),
-                        FilledButton(onPressed: () => Navigator.pop(context, ctrl.text.trim()), child: const Text('确定')),
-                      ],
-                    ),
-                  );
-                  if (url != null && url.isNotEmpty) {
-                    await mirror.select('custom', customUrl: url);
-                  }
-                  setDialogState(() {});
-                },
-              ),
-              const SizedBox(height: 8),
-              OutlinedButton.icon(
-                icon: const Icon(Icons.bolt),
-                label: const Text('一键测速并选择最快线路'),
-                onPressed: () async {
-                  await mirror.autoSelect();
-                  if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('已选择最快线路：${mirror.currentName}（${mirror.lastSpeedMs}ms）')),
-                    );
-                  }
-                  setDialogState(() {});
-                },
-              ),
-            ],
-          ),
-          actions: [
-            FilledButton(onPressed: () => Navigator.pop(context), child: const Text('完成')),
-          ],
-        ),
-      ),
-    );
-    if (mounted) setState(() {});
-  }
+
 }
