@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 
 class UserAgreementDialog extends StatefulWidget {
@@ -11,6 +12,48 @@ class UserAgreementDialog extends StatefulWidget {
 
 class _UserAgreementDialogState extends State<UserAgreementDialog> {
   bool _isChecked = false;
+
+  /// 强制阅读：倒计时 10 秒 + 滚动到底，两者都满足才能勾选同意。
+  static const int _readSeconds = 10;
+  int _countdown = _readSeconds;
+  bool _readToEnd = false;
+  Timer? _timer;
+  final _scrollController = ScrollController();
+
+  @override
+  void initState() {
+    super.initState();
+    _timer = Timer.periodic(const Duration(seconds: 1), (t) {
+      if (!mounted) return t.cancel();
+      setState(() => _countdown--);
+      if (_countdown <= 0) t.cancel();
+    });
+    _scrollController.addListener(_onScroll);
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    _scrollController.removeListener(_onScroll);
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    if (_readToEnd) return;
+    final c = _scrollController;
+    if (c.position.maxScrollExtent <= 0 || c.offset >= c.position.maxScrollExtent - 8) {
+      setState(() => _readToEnd = true);
+    }
+  }
+
+  bool get _canAgree => _isChecked && _countdown <= 0 && _readToEnd;
+
+  String get _buttonLabel {
+    if (_countdown > 0) return '请仔细阅读守则（${_countdown}s）';
+    if (!_readToEnd) return '请阅读至守则底部';
+    return '同意并进入';
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -49,7 +92,8 @@ class _UserAgreementDialogState extends State<UserAgreementDialog> {
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(color: const Color(0xFFE0E0E0)),
                 ),
-                child: const SingleChildScrollView(
+                child: SingleChildScrollView(
+                  controller: _scrollController,
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -107,13 +151,15 @@ class _UserAgreementDialogState extends State<UserAgreementDialog> {
               ),
               const SizedBox(height: 16),
 
-              // 同意勾选
+              // 同意勾选（倒计时结束且阅读到底后才可勾选）
               GestureDetector(
-                onTap: () {
-                  setState(() {
-                    _isChecked = !_isChecked;
-                  });
-                },
+                onTap: _countdown <= 0 && _readToEnd
+                    ? () {
+                        setState(() {
+                          _isChecked = !_isChecked;
+                        });
+                      }
+                    : null,
                 child: Row(
                   children: [
                     SizedBox(
@@ -121,11 +167,13 @@ class _UserAgreementDialogState extends State<UserAgreementDialog> {
                       height: 24,
                       child: Checkbox(
                         value: _isChecked,
-                        onChanged: (value) {
-                          setState(() {
-                            _isChecked = value ?? false;
-                          });
-                        },
+                        onChanged: (_countdown <= 0 && _readToEnd)
+                            ? (value) {
+                                setState(() {
+                                  _isChecked = value ?? false;
+                                });
+                              }
+                            : null,
                         activeColor: const Color(0xFF28A745),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(4),
@@ -133,9 +181,11 @@ class _UserAgreementDialogState extends State<UserAgreementDialog> {
                       ),
                     ),
                     const SizedBox(width: 8),
-                    const Text(
-                      '我已阅读并同意《用户守则》',
-                      style: TextStyle(fontSize: 14, color: Color(0xFF555555)),
+                    Text(
+                      _countdown > 0
+                          ? '阅读倒计时 $_countdown 秒…'
+                          : (_readToEnd ? '我已阅读并同意《用户守则》' : '请先滑动阅读至守则底部'),
+                      style: const TextStyle(fontSize: 14, color: Color(0xFF555555)),
                     ),
                   ],
                 ),
@@ -146,7 +196,7 @@ class _UserAgreementDialogState extends State<UserAgreementDialog> {
               SizedBox(
                 width: double.infinity,
                 child: FilledButton(
-                  onPressed: _isChecked ? widget.onAgree : null,
+                  onPressed: _canAgree ? widget.onAgree : null,
                   style: FilledButton.styleFrom(
                     backgroundColor: const Color(0xFF28A745),
                     disabledBackgroundColor: const Color(0xFFCCCCCC),
@@ -155,9 +205,9 @@ class _UserAgreementDialogState extends State<UserAgreementDialog> {
                       borderRadius: BorderRadius.circular(12),
                     ),
                   ),
-                  child: const Text(
-                    '同意并进入',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                  child: Text(
+                    _buttonLabel,
+                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
                   ),
                 ),
               ),
