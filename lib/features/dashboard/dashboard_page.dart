@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../app.dart' show navigatorKey;
 import '../../providers/rcon_provider.dart';
 import '../../providers/server_provider.dart';
+import '../server_list/server_form_dialog.dart';
 import '../download/download_page.dart';
 import '../mod_manager/mod_list_page.dart';
 import '../terminal/terminal_page.dart';
@@ -58,6 +59,21 @@ class _DashboardPageState extends State<DashboardPage> {
     setState(() => _status = map);
   }
 
+  /// 添加服务器：弹出服务器表单，保存后自动选中。
+  Future<void> _addServer() async {
+    // 在 await 前捕获 Provider，避免跨 async 使用 BuildContext
+    final serverProvider = context.read<ServerProvider>();
+    final holder = context.read<SelectedServerHolder>();
+    final server = await showDialog<ServerConfig>(
+      context: context,
+      builder: (_) => const ServerFormDialog(),
+    );
+    if (server == null || !mounted) return;
+    await serverProvider.addServer(server);
+    holder.select(server);
+    _refreshAll();
+  }
+
   /// 断线提醒：页面内 SnackBar + 顶部全局提示。
   void _showDisconnectAlert(String serverName) {
     final nav = navigatorKey.currentContext;
@@ -103,10 +119,33 @@ class _DashboardPageState extends State<DashboardPage> {
             tooltip: '刷新状态',
             onPressed: _refreshAll,
           ),
+          IconButton(
+            icon: const Icon(Icons.add),
+            tooltip: '添加服务器',
+            onPressed: _addServer,
+          ),
         ],
       ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: _addServer,
+        tooltip: '添加服务器',
+        child: const Icon(Icons.add),
+      ),
       body: servers.isEmpty
-          ? const Center(child: Text('还没有服务器，去「服务器」页添加吧'))
+          ? Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text('还没有服务器，点击下方按钮添加吧'),
+                  const SizedBox(height: 16),
+                  FilledButton.icon(
+                    icon: const Icon(Icons.add),
+                    label: const Text('添加服务器'),
+                    onPressed: _addServer,
+                  ),
+                ],
+              ),
+            )
           : ListView(
               padding: const EdgeInsets.all(12),
               children: [
