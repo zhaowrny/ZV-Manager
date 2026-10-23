@@ -1,5 +1,7 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../app.dart' show navigatorKey;
 import '../../providers/rcon_provider.dart';
 import '../../providers/server_provider.dart';
 import '../download/download_page.dart';
@@ -18,22 +20,70 @@ class DashboardPage extends StatefulWidget {
 
 class _DashboardPageState extends State<DashboardPage> {
   Map<String, ServerStatus> _status = {};
+  Timer? _pollTimer;
 
   @override
   void initState() {
     super.initState();
     _refreshAll();
+    // 每 5 秒轮询一次，用于断线提醒
+    _pollTimer = Timer.periodic(const Duration(seconds: 5), (_) => _refreshAll(alertOnDrop: true));
   }
 
-  Future<void> _refreshAll() async {
+  @override
+  void dispose() {
+    _pollTimer?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _refreshAll({bool alertOnDrop = false}) async {
     final rcon = context.read<RconProvider>();
     final servers = context.read<ServerProvider>().servers;
     final map = <String, ServerStatus>{};
     for (final s in servers) {
       map[s.id] = await rcon.checkStatus(s);
+      if (!mounted) return;
+    }
+    // 断线检测：上一轮在线、这一轮离线 → 弹出提醒
+    if (alertOnDrop) {
+      for (final s in servers) {
+        final prev = _status[s.id];
+        final now = map[s.id];
+        if ((prev?.online ?? false) && !(now?.online ?? false)) {
+          _showDisconnectAlert(s.name);
+        }
+      }
     }
     if (!mounted) return;
     setState(() => _status = map);
+  }
+
+  /// 断线提醒：页面内 SnackBar + 顶部全局提示。
+  void _showDisconnectAlert(String serverName) {
+    final nav = navigatorKey.currentContext;
+    if (nav == null) return;
+    final messenger = ScaffoldMessenger.maybeOf(nav);
+    if (messenger == null) return;
+    messenger.clearSnackBars();
+    messenger.showSnackBar(
+      SnackBar(
+        behavior: SnackBarBehavior.floating,
+        duration: const Duration(seconds: 5),
+        backgroundColor: Colors.red.shade700,
+        content: Row(
+          children: [
+            const Icon(Icons.warning_amber_rounded, color: Colors.white),
+            const SizedBox(width: 8),
+            Expanded(child: Text('⚠️ 服务器「$serverName」已断开连接！')),
+          ],
+        ),
+        action: SnackBarAction(
+          label: '知道了',
+          textColor: Colors.white,
+          onPressed: messenger.hideCurrentSnackBar,
+        ),
+      ),
+    );
   }
 
   @override
