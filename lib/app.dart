@@ -11,8 +11,6 @@ import 'providers/wallpaper_provider.dart';
 import 'core/widgets/user_agreement_dialog.dart';  //  新增
 import 'features/shell/main_shell.dart';
 import 'providers/theme_provider.dart';
-import 'providers/server_provider.dart';
-import 'providers/rcon_provider.dart';
 import 'providers/download_provider.dart';
 import 'features/dashboard/server_picker_bar.dart';
 
@@ -95,9 +93,9 @@ class ZVManagerAppState extends State<ZVManagerApp> {
       // 不要在这里再 create 一个新的 —— 否则设置页与列表页会各持一份状态，
       // hasWallpaper 翻转不同步，切换壁纸时 AppBar 会跳一下色。
       providers: [
-        ChangeNotifierProvider(create: (_) => ThemeProvider()),
-        ChangeNotifierProvider(create: (_) => ServerProvider()),
-        ChangeNotifierProvider(create: (_) => RconProvider()),
+        // Theme/Server/Rcon 由 main.dart 的 Bootstrap 预加载后以 .value 注入，
+        // 这里绝不能再 create 新实例 —— 否则会生成一个空的影子 Provider，
+        // 导致更新后服务器列表"被清空"、添加时覆盖真实数据（v2.0 实测 bug）。
         ChangeNotifierProvider(create: (_) => DownloadProvider()),
         ChangeNotifierProvider(create: (_) => SelectedServerHolder()),
         // 复用 main() 中预加载的实例，不能在这里 create 一个新的

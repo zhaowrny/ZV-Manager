@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../providers/server_provider.dart';
@@ -17,8 +18,15 @@ class SecureStorageService {
   static Future<List<ServerConfig>> loadServers() async {
     final encrypted = await _storage.read(key: _key);
     if (encrypted != null) {
-      final List<dynamic> decoded = jsonDecode(encrypted);
-      return decoded.map((e) => ServerConfig.fromJson(e)).toList();
+      try {
+        final List<dynamic> decoded = jsonDecode(encrypted);
+        return decoded.map((e) => ServerConfig.fromJson(Map<String, dynamic>.from(e))).toList();
+      } catch (e) {
+        // 数据解析失败（版本变更/损坏）时原样保留，绝不能当成空列表处理，
+        // 否则后续任何一次保存都会把用户的服务器数据覆盖丢失。
+        debugPrint('服务器数据解析失败，已保留原始数据: $e');
+        return [];
+      }
     }
 
     final prefs = await SharedPreferences.getInstance();
