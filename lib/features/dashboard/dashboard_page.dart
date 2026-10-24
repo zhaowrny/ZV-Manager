@@ -75,6 +75,47 @@ class _DashboardPageState extends State<DashboardPage> {
     _refreshAll();
   }
 
+  /// 服务器卡片菜单：编辑 / 删除。
+  Future<void> _onServerAction(BuildContext context, ServerConfig s, String action) async {
+    final serverProvider = context.read<ServerProvider>();
+    final rconProvider = context.read<RconProvider>();
+    final holder = context.read<SelectedServerHolder>();
+    if (action == 'edit') {
+      final updated = await showDialog<ServerConfig>(
+        context: context,
+        builder: (_) => ServerFormDialog(existingServer: s),
+      );
+      if (updated == null || !mounted) return;
+      await serverProvider.updateServer(updated);
+      // 若编辑的是当前选中服务器，刷新选中引用
+      if (holder.server?.id == updated.id) holder.select(updated);
+      _refreshAll();
+      return;
+    }
+    if (action == 'delete') {
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (_) => AlertDialog(
+          title: const Text('删除服务器'),
+          content: Text('确定要删除「${s.name}」吗？仅删除本应用中的连接配置，不影响服务器本身。'),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('取消')),
+            FilledButton(
+              style: FilledButton.styleFrom(backgroundColor: Colors.red),
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('删除'),
+            ),
+          ],
+        ),
+      );
+      if (confirmed != true || !mounted) return;
+      await serverProvider.removeServer(s.id);
+      rconProvider.disposeServer(s.id);
+      if (holder.server?.id == s.id) holder.select(null);
+      setState(() => _status.remove(s.id));
+    }
+  }
+
   /// 断线提醒：页面内 SnackBar + 顶部全局提示。
   void _showDisconnectAlert(String serverName) {
     final nav = navigatorKey.currentContext;
@@ -227,7 +268,19 @@ class _DashboardPageState extends State<DashboardPage> {
                                 '${st.tps != null ? " · TPS ${st.tps!.toStringAsFixed(1)}" : ""}'
                             : '离线',
                       ),
-                      trailing: isSel ? const Icon(Icons.check) : null,
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (isSel) const Icon(Icons.check, color: Colors.green),
+                          PopupMenuButton<String>(
+                            onSelected: (a) => _onServerAction(context, s, a),
+                            itemBuilder: (_) => const [
+                              PopupMenuItem(value: 'edit', child: Text('编辑')),
+                              PopupMenuItem(value: 'delete', child: Text('删除')),
+                            ],
+                          ),
+                        ],
+                      ),
                       onTap: () {
                         holder.select(s);
                         setState(() {});
