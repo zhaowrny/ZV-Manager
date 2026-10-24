@@ -59,7 +59,10 @@ class _AboutPageState extends State<AboutPage> {
           const SizedBox(height: 24),
           Column(
             children: [
-              const Icon(Icons.extension, size: 64),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(16),
+                child: Image.asset('assets/logo.png', width: 96, height: 96),
+              ),
               const SizedBox(height: 8),
               T('ZV Manager', style: Theme.of(context).textTheme.titleLarge),
               Text(S.f('版本 {0}', [_currentVersion]),
