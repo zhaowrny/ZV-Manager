@@ -395,6 +395,16 @@ class S {
     '视频': 'Video',
     '图片': 'Image',
     '连接凭据已加密保存，仅存于本机': 'Credentials are encrypted and stored on this device only',
+    '服务器日志': 'Server Logs',
+    '通过 SSH 查看服务器 logs 目录日志输出': 'View server logs directory output via SSH',
+    '请先在「服务器」页配置 SSH 连接': 'Configure an SSH connection on the Servers page first',
+    '选择服务器（需开启 SSH）': 'Select server (SSH required)',
+    '日志目录路径': 'Logs directory path',
+    '例如 /root/logs': 'e.g. /root/logs',
+    '自动刷新（每 5 秒）': 'Auto refresh (every 5s)',
+    '目录下没有日志文件': 'No log files in this directory',
+    '读取失败：{0}': 'Failed to read: {0}',
+    '自动刷新并跟随底部（每 5 秒）': 'Auto refresh & follow bottom (every 5s)',
   };
 
   static String t(String zh) => en ? (_en[zh] ?? zh) : zh;

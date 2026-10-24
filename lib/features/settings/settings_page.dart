@@ -12,6 +12,7 @@ import '../../core/widgets/background_widget.dart';
 import '../../providers/theme_provider.dart';
 import '../../providers/wallpaper_provider.dart';
 import 'help_page.dart';
+import 'server_log_page.dart';
 import 'download_settings_page.dart';
 import '../../providers/language_provider.dart';
 import '../../core/l10n/strings.dart';
@@ -327,6 +328,19 @@ class _SettingsPageState extends State<SettingsPage> {
             onTap: () => Navigator.push(
               context,
               MaterialPageRoute(builder: (_) => const DownloadSettingsPage()),
+            ),
+          ),
+          const Divider(),
+
+          // ---------- 服务器日志 ----------
+          ListTile(
+            leading: const Icon(Icons.receipt_long_outlined),
+            title: T('服务器日志'),
+            subtitle: T('通过 SSH 查看服务器 logs 目录日志输出'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const ServerLogPage()),
             ),
           ),
           const Divider(),

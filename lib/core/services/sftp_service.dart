@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:typed_data';
 import 'package:dartssh2/dartssh2.dart';
 import 'dart:io' as io;
@@ -78,6 +79,31 @@ class SftpService {
       }
       await sink.flush();
       await sink.close();
+    } finally {
+      await file.close();
+    }
+  }
+
+  /// 读取远程文件文本内容（保留末尾 maxBytes 字节，适合大日志文件）。
+  Future<String> readString(
+    String remotePath, {
+    int maxBytes = 2 * 1024 * 1024,
+  }) async {
+    final sftp = _requireSftp();
+    final file = await sftp.open(remotePath, mode: SftpFileOpenMode.read);
+    try {
+      final buf = BytesBuilder();
+      await for (final chunk in file.read()) {
+        buf.add(chunk);
+      }
+      final bytes = buf.takeBytes();
+      if (bytes.length <= maxBytes) return utf8.decode(bytes, allowMalformed: true);
+      // 只保留末尾 maxBytes，并跳过半个字符
+      var start = bytes.length - maxBytes;
+      while (start < bytes.length && (bytes[start] & 0xC0) == 0x80) {
+        start++;
+      }
+      return utf8.decode(bytes.sublist(start), allowMalformed: true);
     } finally {
       await file.close();
     }
