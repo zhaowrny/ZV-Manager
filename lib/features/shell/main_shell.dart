@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../providers/wallpaper_provider.dart';
 import '../../core/utils/rcon_client.dart';
 import '../../providers/rcon_provider.dart';
 import '../console/console_page.dart';
@@ -59,8 +60,9 @@ class _TabScaffold extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final hasWallpaper = context.watch<WallpaperProvider>().hasWallpaper;
     return Scaffold(
-      backgroundColor: Colors.transparent,
+      backgroundColor: hasWallpaper ? Colors.transparent : null,
       appBar: AppBar(
         title: subtitle == null || subtitle!.isEmpty
             ? Text(title)

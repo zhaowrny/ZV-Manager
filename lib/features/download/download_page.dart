@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../providers/wallpaper_provider.dart';
 import '../../core/services/modrinth_api.dart';
 import '../../providers/download_provider.dart';
 import '../../core/services/download_manager.dart';
@@ -60,10 +61,11 @@ class _DownloadPageState extends State<DownloadPage> {
   @override
   Widget build(BuildContext context) {
     final dp = context.read<DownloadProvider>();
+    final hasWallpaper = context.watch<WallpaperProvider>().hasWallpaper;
     return DefaultTabController(
       length: 2,
       child: Scaffold(
-        backgroundColor: Colors.transparent,
+        backgroundColor: hasWallpaper ? Colors.transparent : null,
         appBar: AppBar(
           title: const Text('下载中心'),
           actions: [

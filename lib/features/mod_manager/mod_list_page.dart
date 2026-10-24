@@ -1,4 +1,5 @@
 import 'package:file_picker/file_picker.dart';
+import '../../providers/wallpaper_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -57,13 +58,14 @@ class _ModListPageState extends State<ModListPage>
     if (!server.hasSsh) {
       return _NoSshHint(serverName: server.name);
     }
+    final hasWallpaper = context.watch<WallpaperProvider>().hasWallpaper;
     final p = _provider;
     if (p == null) return const SizedBox.shrink();
     return ChangeNotifierProvider<ModProvider>.value(
       value: p,
       child: Consumer<ModProvider>(builder: (context, mod, _) {
         return Scaffold(
-          backgroundColor: Colors.transparent,
+          backgroundColor: hasWallpaper ? Colors.transparent : null,
           appBar: AppBar(
             title: const Text('模组管理'),
             actions: [

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../providers/wallpaper_provider.dart';
 import 'package:xterm/core.dart';
 import 'package:xterm/ui.dart' show TerminalView;
 import '../../core/services/ssh_shell_service.dart';
@@ -87,9 +88,10 @@ class _TerminalPageState extends State<TerminalPage>
         ),
       );
     }
+    final hasWallpaper = context.watch<WallpaperProvider>().hasWallpaper;
     final active = _sessions[_activeId];
     return Scaffold(
-      backgroundColor: Colors.transparent,
+      backgroundColor: hasWallpaper ? Colors.transparent : null,
       appBar: AppBar(
         title: const Text('终端'),
         actions: [

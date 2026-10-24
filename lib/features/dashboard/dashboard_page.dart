@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../providers/wallpaper_provider.dart';
 import '../../app.dart' show navigatorKey;
 import '../../providers/rcon_provider.dart';
 import '../../providers/server_provider.dart';
@@ -107,10 +108,11 @@ class _DashboardPageState extends State<DashboardPage> {
     final servers = context.watch<ServerProvider>().servers;
     final holder = context.watch<SelectedServerHolder>();
     final selected = holder.server ?? (servers.isNotEmpty ? servers.first : null);
+    final hasWallpaper = context.watch<WallpaperProvider>().hasWallpaper;
     final status = selected != null ? _status[selected.id] : null;
 
     return Scaffold(
-      backgroundColor: Colors.transparent,
+      backgroundColor: hasWallpaper ? Colors.transparent : null,
       appBar: AppBar(
         title: const Text('ZV Manager'),
         actions: [
