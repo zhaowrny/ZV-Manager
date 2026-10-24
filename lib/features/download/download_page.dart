@@ -26,6 +26,9 @@ class _DownloadPageState extends State<DownloadPage> {
   static const _mcVersions = ['1.21.4', '1.21.1', '1.20.6', '1.20.4', '1.20.1', '1.19.4', '1.18.2', '1.16.5'];
   static const _loaders = ['fabric', 'forge', 'quilt', 'neoforge', 'paper', 'bukkit', 'spigot'];
 
+  /// 任务队列视图：false=卡片列表，true=进度条视图。
+  bool _barView = false;
+
   @override
   void initState() {
     super.initState();
@@ -77,6 +80,11 @@ class _DownloadPageState extends State<DownloadPage> {
                 context,
                 MaterialPageRoute(builder: (_) => const DownloadSettingsPage()),
               ),
+            ),
+            IconButton(
+              icon: Icon(_barView ? Icons.view_list_outlined : Icons.equalizer),
+              tooltip: _barView ? S.t('卡片视图') : S.t('进度条视图'),
+              onPressed: () => setState(() => _barView = !_barView),
             ),
           ],
           bottom: const TabBar(tabs: [Tab(text: '搜索下载'), Tab(text: '任务队列')]),
@@ -235,12 +243,89 @@ class _DownloadPageState extends State<DownloadPage> {
     }
   }
 
+  /// 进度条视图：每个任务一条横向进度条 + 百分比。
+  Widget _buildBarList(DownloadProvider dp, List tasks) {
+    return ListView.builder(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      itemCount: tasks.length,
+      itemBuilder: (context, i) {
+        final t = tasks[i];
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Text('${i + 1}. ${t.fileName}',
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.bodyMedium),
+                  ),
+                  Text('${(t.progress * 100).toStringAsFixed(0)}%',
+                      style: Theme.of(context).textTheme.bodySmall),
+                  const SizedBox(width: 4),
+                  _statusChip(t.status),
+                ],
+              ),
+              const SizedBox(height: 6),
+              LinearProgressIndicator(
+                value: t.status == DownloadStatus.completed ? 1 : t.progress,
+                minHeight: 8,
+                borderRadius: BorderRadius.circular(4),
+              ),
+              const SizedBox(height: 4),
+              Row(
+                children: [
+                  Text(
+                    '${_fmt(t.receivedBytes)} / ${_fmt(t.totalBytes)}'
+                    '${t.status == DownloadStatus.running ? " · ${_fmt(t.speed)}/s" : ""}',
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                  const Spacer(),
+                  if (t.status == DownloadStatus.running)
+                    IconButton(
+                      icon: const Icon(Icons.pause, size: 20),
+                      tooltip: S.t('暂停'),
+                      onPressed: () => dp.manager.pause(t.id),
+                    ),
+                  if (t.status == DownloadStatus.paused)
+                    IconButton(
+                      icon: const Icon(Icons.play_arrow, size: 20),
+                      tooltip: S.t('继续'),
+                      onPressed: () => dp.manager.resume(t.id),
+                    ),
+                  if (t.status == DownloadStatus.failed)
+                    IconButton(
+                      icon: const Icon(Icons.replay, size: 20),
+                      tooltip: S.t('重试'),
+                      onPressed: () => dp.manager.retry(t.id),
+                    ),
+                  IconButton(
+                    icon: const Icon(Icons.close, size: 20),
+                    tooltip: S.t('取消'),
+                    onPressed: () => dp.manager.cancel(t.id),
+                  ),
+                ],
+              ),
+              if (t.error != null)
+                Text(t.error!,
+                    style: TextStyle(
+                        color: Theme.of(context).colorScheme.error, fontSize: 12)),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   Widget _buildQueueTab(DownloadProvider dp) {
     return AnimatedBuilder(
       animation: dp.manager,
       builder: (context, _) {
         final tasks = dp.manager.tasks;
         if (tasks.isEmpty) return const Center(child: T('暂无下载任务'));
+        if (_barView) return _buildBarList(dp, tasks);
         return ListView.builder(
           itemCount: tasks.length,
           itemBuilder: (context, i) {

@@ -1,18 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:package_info_plus/package_info_plus.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:file_picker/file_picker.dart';
 import 'dart:io';
 import 'package:path_provider/path_provider.dart';
 import '../../core/theme/app_theme.dart';
-import '../../core/utils/update_service.dart';
 import '../../core/utils/background_service.dart';
 import '../../core/widgets/background_widget.dart';
 import '../../providers/theme_provider.dart';
 import '../../providers/wallpaper_provider.dart';
 import 'help_page.dart';
 import 'server_log_page.dart';
+import 'about_page.dart';
+import '../../core/widgets/user_agreement_dialog.dart';
 import 'download_settings_page.dart';
 import '../../providers/language_provider.dart';
 import '../../core/l10n/strings.dart';
@@ -24,8 +24,6 @@ class SettingsPage extends StatefulWidget {
 }
 
 class _SettingsPageState extends State<SettingsPage> {
-  String _currentVersion = '';
-  bool _checkingUpdate = false;
   String? _currentBgType;
   String? _currentBgPath;
   bool _videoSoundEnabled = false;
@@ -33,14 +31,8 @@ class _SettingsPageState extends State<SettingsPage> {
   @override
   void initState() {
     super.initState();
-    _loadVersion();
     _loadCurrentBg();
     _loadVideoSound();
-  }
-
-  Future<void> _loadVersion() async {
-    final info = await PackageInfo.fromPlatform();
-    if (mounted) setState(() => _currentVersion = info.version);
   }
 
   Future<void> _loadCurrentBg() async {
@@ -56,30 +48,6 @@ class _SettingsPageState extends State<SettingsPage> {
   Future<void> _loadVideoSound() async {
     final enabled = await BackgroundService.getVideoSound();
     if (mounted) setState(() => _videoSoundEnabled = enabled);
-  }
-
-  Future<void> _checkUpdate() async {
-    setState(() => _checkingUpdate = true);
-    try {
-      final updateInfo = await UpdateService.fetchInfo(userAgent: _currentVersion);
-      if (!mounted) return;
-      setState(() => _checkingUpdate = false);
-
-      if (updateInfo == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: T('获取更新信息失败')),
-        );
-        return;
-      }
-
-      UpdateService.showUpdateDialog(context, updateInfo, _currentVersion);
-    } catch (e) {
-      if (!mounted) return;
-      setState(() => _checkingUpdate = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(S.f('检查更新失败：{0}', [e]))),
-      );
-    }
   }
 
   // ==================== 背景相关方法 ====================
@@ -358,31 +326,30 @@ class _SettingsPageState extends State<SettingsPage> {
           ),
           const Divider(),
 
-          // ---------- 检查更新 ----------
+          // ---------- 用户须知 ----------
           ListTile(
-            leading: const Icon(Icons.system_update_outlined),
-            title: T('检查更新'),
-            subtitle: Text(S.f('当前版本: {0}', [_currentVersion])),
-            trailing: _checkingUpdate
-                ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
-                : const Icon(Icons.chevron_right),
-            onTap: _checkingUpdate ? null : _checkUpdate,
+            leading: const Icon(Icons.gavel_outlined),
+            title: T('用户须知'),
+            subtitle: T('查看用户守则全部条款'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => showDialog(
+              context: context,
+              barrierDismissible: true,
+              builder: (_) => UserAgreementDialog.readView(),
+            ),
           ),
           const Divider(),
 
-          // ---------- 关于 ----------
-          const ListTile(
-            leading: Icon(Icons.info_outline),
-            title: T('关于'),
-            subtitle: T('开发者：Z有3笔，协作者：venti1112'),
-          ),
-          const Divider(),
-
-          // ---------- 开源许可 ----------
+          // ---------- 关于软件（检查更新 + 创造者 + 开源许可） ----------
           ListTile(
-            leading: const Icon(Icons.fact_check_outlined),
-            title: T('开源许可'),
-            onTap: () => showLicensePage(context: context),
+            leading: const Icon(Icons.info_outline),
+            title: T('关于软件'),
+            subtitle: T('版本、检查更新、创造者与开源许可'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const AboutPage()),
+            ),
           ),
         ],
       ),

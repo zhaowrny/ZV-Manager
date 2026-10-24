@@ -5,7 +5,14 @@ import '../l10n/strings.dart';
 class UserAgreementDialog extends StatefulWidget {
   final VoidCallback onAgree;
 
-  const UserAgreementDialog({super.key, required this.onAgree});
+  /// 只读模式：设置「用户须知」入口使用，无需倒计时/勾选，按钮直接关闭。
+  final bool readOnly;
+
+  const UserAgreementDialog({super.key, required this.onAgree, this.readOnly = false});
+
+  /// 只读查看入口。
+  static Widget readView() =>
+      UserAgreementDialog(onAgree: () {}, readOnly: true);
 
   @override
   State<UserAgreementDialog> createState() => _UserAgreementDialogState();
@@ -13,6 +20,7 @@ class UserAgreementDialog extends StatefulWidget {
 
 class _UserAgreementDialogState extends State<UserAgreementDialog> {
   bool _isChecked = false;
+  bool get _readOnly => widget.readOnly;
 
   /// 强制阅读：倒计时 10 秒 + 滚动到底，两者都满足才能勾选同意。
   static const int _readSeconds = 10;
@@ -24,6 +32,11 @@ class _UserAgreementDialogState extends State<UserAgreementDialog> {
   @override
   void initState() {
     super.initState();
+    if (widget.readOnly) {
+      _countdown = 0;
+      _readToEnd = true;
+      return;
+    }
     _timer = Timer.periodic(const Duration(seconds: 1), (t) {
       if (!mounted) return t.cancel();
       setState(() => _countdown--);
@@ -48,9 +61,11 @@ class _UserAgreementDialogState extends State<UserAgreementDialog> {
     }
   }
 
-  bool get _canAgree => _isChecked && _countdown <= 0 && _readToEnd;
+  bool get _canAgree =>
+      _readOnly || (_isChecked && _countdown <= 0 && _readToEnd);
 
   String get _buttonLabel {
+    if (_readOnly) return S.t('我知道了');
     if (_countdown > 0) return S.f('请仔细阅读守则（{0}s）', [_countdown]);
     if (!_readToEnd) return S.t('请阅读至守则底部');
     return S.t('同意并进入');
@@ -59,7 +74,7 @@ class _UserAgreementDialogState extends State<UserAgreementDialog> {
   @override
   Widget build(BuildContext context) {
     return PopScope(
-      canPop: false,
+      canPop: _readOnly,
       child: Dialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         insetPadding: const EdgeInsets.symmetric(horizontal: 20),
@@ -152,8 +167,8 @@ class _UserAgreementDialogState extends State<UserAgreementDialog> {
               ),
               const SizedBox(height: 16),
 
-              // 同意勾选（倒计时结束且阅读到底后才可勾选）
-              GestureDetector(
+              // 同意勾选（倒计时结束且阅读到底后才可勾选）；只读模式不显示
+              if (!_readOnly) GestureDetector(
                 onTap: _countdown <= 0 && _readToEnd
                     ? () {
                         setState(() {
@@ -197,7 +212,11 @@ class _UserAgreementDialogState extends State<UserAgreementDialog> {
               SizedBox(
                 width: double.infinity,
                 child: FilledButton(
-                  onPressed: _canAgree ? widget.onAgree : null,
+                  onPressed: !_canAgree
+                      ? null
+                      : (_readOnly
+                          ? () => Navigator.of(context).pop()
+                          : widget.onAgree),
                   style: FilledButton.styleFrom(
                     backgroundColor: const Color(0xFF28A745),
                     disabledBackgroundColor: const Color(0xFFCCCCCC),

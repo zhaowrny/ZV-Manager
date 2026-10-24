@@ -405,6 +405,15 @@ class S {
     '目录下没有日志文件': 'No log files in this directory',
     '读取失败：{0}': 'Failed to read: {0}',
     '自动刷新并跟随底部（每 5 秒）': 'Auto refresh & follow bottom (every 5s)',
+    '卡片视图': 'Card view',
+    '进度条视图': 'Progress bar view',
+    '用户须知': 'User Notice',
+    '查看用户守则全部条款': 'View all terms of the user agreement',
+    '关于软件': 'About',
+    '版本、检查更新、创造者与开源许可': 'Version, updates, creators and licenses',
+    '我知道了': 'Got it',
+    '创造者': 'Creators',
+    'ZV Manager 是一款 Minecraft 服务器远程管理工具，本软件与 Mojang、微软无任何隶属关系。': 'ZV Manager is a remote management tool for Minecraft servers. Not affiliated with Mojang or Microsoft.',
   };
 
   static String t(String zh) => en ? (_en[zh] ?? zh) : zh;
