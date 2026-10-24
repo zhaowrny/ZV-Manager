@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../providers/server_provider.dart';
+import '../../core/l10n/strings.dart';
 
 class ServerFormDialog extends StatefulWidget {
   final ServerConfig? existingServer;
@@ -53,14 +54,14 @@ class _ServerFormDialogState extends State<ServerFormDialog> {
   }
 
   String? _validateRequired(String? value, String field) {
-    if (value == null || value.trim().isEmpty) return '$field不能为空';
+    if (value == null || value.trim().isEmpty) return S.f('{0}不能为空', [field]);
     return null;
   }
 
   String? _validatePort(String? value) {
-    if (value == null || value.trim().isEmpty) return '端口不能为空';
+    if (value == null || value.trim().isEmpty) return S.t('端口不能为空');
     final port = int.tryParse(value.trim());
-    if (port == null || port < 1 || port > 65535) return '端口范围 1-65535';
+    if (port == null || port < 1 || port > 65535) return S.t('端口范围 1-65535');
     return null;
   }
 
@@ -94,21 +95,21 @@ class _ServerFormDialogState extends State<ServerFormDialog> {
             children: [
               TextFormField(
                 controller: _nameCtrl,
-                decoration: const InputDecoration(labelText: '服务器名称', hintText: '例如: 我的生存服'),
+                decoration: InputDecoration(labelText: S.t('服务器名称'), hintText: S.t('例如: 我的生存服')),
                 validator: (v) => _validateRequired(v, '服务器名称'),
                 textInputAction: TextInputAction.next,
               ),
               const SizedBox(height: 12),
               TextFormField(
                 controller: _hostCtrl,
-                decoration: const InputDecoration(labelText: '主机地址', hintText: 'IP 或域名'),
+                decoration: InputDecoration(labelText: S.t('主机地址'), hintText: S.t('IP 或域名')),
                 validator: (v) => _validateRequired(v, '主机地址'),
                 textInputAction: TextInputAction.next,
               ),
               const SizedBox(height: 12),
               TextFormField(
                 controller: _portCtrl,
-                decoration: const InputDecoration(labelText: 'RCON 端口', hintText: '默认 25575'),
+                decoration: InputDecoration(labelText: S.t('RCON 端口'), hintText: S.t('默认 25575')),
                 keyboardType: TextInputType.number,
                 validator: _validatePort,
                 textInputAction: TextInputAction.next,
@@ -118,7 +119,7 @@ class _ServerFormDialogState extends State<ServerFormDialog> {
                 controller: _passCtrl,
                 obscureText: _obscurePassword,
                 decoration: InputDecoration(
-                  labelText: 'RCON 密码',
+                  labelText: S.t('RCON 密码'),
                   suffixIcon: IconButton(
                     icon: Icon(_obscurePassword ? Icons.visibility_off_outlined : Icons.visibility_outlined),
                     onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
@@ -131,15 +132,15 @@ class _ServerFormDialogState extends State<ServerFormDialog> {
               const SizedBox(height: 8),
               SwitchListTile(
                 contentPadding: EdgeInsets.zero,
-                title: const Text('SSH 连接（可选）'),
-                subtitle: const Text('用于模组插件管理与远程终端'),
+                title: T('SSH 连接（可选）'),
+                subtitle: T('用于模组插件管理与远程终端'),
                 value: _sshEnabled,
                 onChanged: (v) => setState(() => _sshEnabled = v),
               ),
               if (_sshEnabled) ...[
                 TextFormField(
                   controller: _sshPortCtrl,
-                  decoration: const InputDecoration(labelText: 'SSH 端口', hintText: '默认 22'),
+                  decoration: InputDecoration(labelText: S.t('SSH 端口'), hintText: S.t('默认 22')),
                   keyboardType: TextInputType.number,
                   validator: (v) {
                     if (!_sshEnabled) return null;
@@ -150,7 +151,7 @@ class _ServerFormDialogState extends State<ServerFormDialog> {
                 const SizedBox(height: 12),
                 TextFormField(
                   controller: _sshUserCtrl,
-                  decoration: const InputDecoration(labelText: 'SSH 用户名', hintText: '例如 root'),
+                  decoration: InputDecoration(labelText: S.t('SSH 用户名'), hintText: S.t('例如 root')),
                   validator: (v) => _sshEnabled ? _validateRequired(v, 'SSH 用户名') : null,
                   textInputAction: TextInputAction.next,
                 ),
@@ -159,7 +160,7 @@ class _ServerFormDialogState extends State<ServerFormDialog> {
                   controller: _sshPasswordCtrl,
                   obscureText: _obscureSshPassword,
                   decoration: InputDecoration(
-                    labelText: 'SSH 密码',
+                    labelText: S.t('SSH 密码'),
                     suffixIcon: IconButton(
                       icon: Icon(_obscureSshPassword
                           ? Icons.visibility_off_outlined
@@ -178,7 +179,7 @@ class _ServerFormDialogState extends State<ServerFormDialog> {
         ),
       ),
       actions: [
-        TextButton(onPressed: () => Navigator.pop(context), child: const Text('取消')),
+        TextButton(onPressed: () => Navigator.pop(context), child: T('取消')),
         FilledButton(onPressed: _submit, child: Text(isEditing ? '保存' : '添加')),
       ],
     );

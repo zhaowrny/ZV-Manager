@@ -1,6 +1,7 @@
 import 'dart:ui';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../core/l10n/strings.dart';
 
 /// 应用语言设置：跟随系统 / 简体中文 / English，持久化保存。
 class LanguageProvider extends ChangeNotifier {
@@ -26,10 +27,12 @@ class LanguageProvider extends ChangeNotifier {
       (m) => m.name == v,
       orElse: () => LanguageMode.system,
     );
+    S.en = _mode == LanguageMode.en;
   }
 
   Future<void> setMode(LanguageMode mode) async {
     _mode = mode;
+    S.en = mode == LanguageMode.en;
     notifyListeners();
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_key, mode.name);

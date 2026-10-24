@@ -11,6 +11,7 @@ import '../mod_manager/mod_list_page.dart';
 import '../player_management/player_list_page.dart';
 import '../settings/settings_page.dart';
 import '../terminal/terminal_page.dart';
+import '../../core/l10n/strings.dart';
 
 /// 主导航壳：底部导航「服务器 · 控制台 · 玩家 · 模组 · 终端 · 我的」（M4）。
 class MainShell extends StatefulWidget {
@@ -111,23 +112,23 @@ class _ConsoleTab extends StatelessWidget {
     final rcon = context.read<RconProvider>();
     final server = holder.server;
     if (server == null) {
-      return const _TabScaffold(title: '控制台', child: _NeedServerHint());
+      return _TabScaffold(title: S.t('控制台'), child: const _NeedServerHint());
     }
     return FutureBuilder<RconClient>(
       future: rcon.getClient(server),
       builder: (context, snap) {
         if (snap.connectionState != ConnectionState.done) {
           return _TabScaffold(
-            title: '控制台',
+            title: S.t('控制台'),
             subtitle: server.name,
             child: const Center(child: CircularProgressIndicator()),
           );
         }
         if (snap.hasError) {
           return _TabScaffold(
-            title: '控制台',
+            title: S.t('控制台'),
             subtitle: server.name,
-            child: Center(child: Text('RCON 连接失败：${snap.error}')),
+            child: Center(child: Text(S.f('RCON 连接失败：{0}', [snap.error.toString()]))),
           );
         }
         return ConsolePage(rconClient: snap.data!); // 自带 AppBar
@@ -146,23 +147,23 @@ class _PlayerTab extends StatelessWidget {
     final rcon = context.read<RconProvider>();
     final server = holder.server;
     if (server == null) {
-      return const _TabScaffold(title: '玩家', child: _NeedServerHint());
+      return _TabScaffold(title: S.t('玩家'), child: const _NeedServerHint());
     }
     return FutureBuilder<RconClient>(
       future: rcon.getClient(server),
       builder: (context, snap) {
         if (snap.connectionState != ConnectionState.done) {
           return _TabScaffold(
-            title: '玩家',
+            title: S.t('玩家'),
             subtitle: server.name,
             child: const Center(child: CircularProgressIndicator()),
           );
         }
         if (snap.hasError) {
           return _TabScaffold(
-            title: '玩家',
+            title: S.t('玩家'),
             subtitle: server.name,
-            child: Center(child: Text('RCON 连接失败：${snap.error}')),
+            child: Center(child: Text(S.f('RCON 连接失败：{0}', [snap.error.toString()]))),
           );
         }
         return PlayerListPage(rconClient: snap.data!); // 自带 AppBar
@@ -176,6 +177,6 @@ class _NeedServerHint extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Center(child: Text('请先在「服务器」页选择一台服务器'));
+    return const Center(child: T('请先在「服务器」页选择一台服务器'));
   }
 }

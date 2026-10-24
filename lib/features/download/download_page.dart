@@ -5,6 +5,7 @@ import '../../core/services/modrinth_api.dart';
 import '../../providers/download_provider.dart';
 import '../../core/services/download_manager.dart';
 import '../settings/download_settings_page.dart';
+import '../../core/l10n/strings.dart';
 
 /// 下载中心：Modrinth 搜索 + 镜像线路选择 + 下载任务队列（M2）。
 class DownloadPage extends StatefulWidget {
@@ -54,7 +55,7 @@ class _DownloadPageState extends State<DownloadPage> {
     } catch (e) {
       if (!mounted) return;
       setState(() => _searching = false);
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('搜索失败：$e')));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(S.f('搜索失败：{0}', [e]))));
     }
   }
 
@@ -67,11 +68,11 @@ class _DownloadPageState extends State<DownloadPage> {
       child: Scaffold(
         backgroundColor: hasWallpaper ? Colors.transparent : null,
         appBar: AppBar(
-          title: const Text('下载中心'),
+          title: T('下载中心'),
           actions: [
             IconButton(
               icon: const Icon(Icons.settings_outlined),
-              tooltip: '下载与镜像设置',
+              tooltip: S.t('下载与镜像设置'),
               onPressed: () => Navigator.push(
                 context,
                 MaterialPageRoute(builder: (_) => const DownloadSettingsPage()),
@@ -95,8 +96,8 @@ class _DownloadPageState extends State<DownloadPage> {
               Expanded(
                 child: TextField(
                   controller: _searchCtrl,
-                  decoration: const InputDecoration(
-                    hintText: '搜索 Modrinth 模组/插件，如 sodium',
+                  decoration: InputDecoration(
+                    hintText: S.t('搜索 Modrinth 模组/插件，如 sodium'),
                     prefixIcon: Icon(Icons.search),
                     border: OutlineInputBorder(),
                     isDense: true,
@@ -105,7 +106,7 @@ class _DownloadPageState extends State<DownloadPage> {
                 ),
               ),
               const SizedBox(width: 8),
-              FilledButton(onPressed: _searching ? null : _search, child: const Text('搜索')),
+              FilledButton(onPressed: _searching ? null : _search, child: T('搜索')),
             ],
           ),
         ),
@@ -139,9 +140,9 @@ class _DownloadPageState extends State<DownloadPage> {
           child: _searching
               ? const Center(child: CircularProgressIndicator())
               : _results == null
-                  ? const Center(child: Text('输入关键词开始搜索'))
+                  ? const Center(child: T('输入关键词开始搜索'))
                   : _results!.isEmpty
-                      ? const Center(child: Text('没有结果'))
+                      ? const Center(child: T('没有结果'))
                       : ListView.builder(
                           itemCount: _results!.length,
                           itemBuilder: (context, i) {
@@ -184,7 +185,7 @@ class _DownloadPageState extends State<DownloadPage> {
   Future<void> _showVersionSheet(ModrinthSearchResult r) async {
     final dp = context.read<DownloadProvider>();
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('正在获取版本列表...'), duration: Duration(seconds: 1)),
+      SnackBar(content: T('正在获取版本列表...'), duration: Duration(seconds: 1)),
     );
     try {
       final versions = await dp.versions(r.projectId);
@@ -197,7 +198,7 @@ class _DownloadPageState extends State<DownloadPage> {
             children: [
               Padding(
                 padding: const EdgeInsets.all(16),
-                child: Text('选择 ${r.title} 的版本', style: Theme.of(context).textTheme.titleMedium),
+                child: Text(S.f('选择 {0} 的版本', [r.title]), style: Theme.of(context).textTheme.titleMedium),
               ),
               ...versions.take(15).map((v) => ListTile(
                     title: Text(v.versionNumber),
@@ -211,7 +212,7 @@ class _DownloadPageState extends State<DownloadPage> {
       );
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('获取版本失败：$e')));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(S.f('获取版本失败：{0}', [e]))));
       }
     }
   }
@@ -222,7 +223,7 @@ class _DownloadPageState extends State<DownloadPage> {
     // 取主 jar 文件
     final files = v.files;
     if (files.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('该版本没有可用文件')));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: T('该版本没有可用文件')));
       return;
     }
     final primary = files.firstWhere((f) => f['primary'] == true, orElse: () => files.first);
@@ -230,7 +231,7 @@ class _DownloadPageState extends State<DownloadPage> {
     final fileName = primary['filename'] as String;
     await dp.download(url: url, fileName: fileName, projectType: _projectType);
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('已加入下载队列：$fileName')));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(S.f('已加入下载队列：{0}', [fileName]))));
     }
   }
 
@@ -239,7 +240,7 @@ class _DownloadPageState extends State<DownloadPage> {
       animation: dp.manager,
       builder: (context, _) {
         final tasks = dp.manager.tasks;
-        if (tasks.isEmpty) return const Center(child: Text('暂无下载任务'));
+        if (tasks.isEmpty) return const Center(child: T('暂无下载任务'));
         return ListView.builder(
           itemCount: tasks.length,
           itemBuilder: (context, i) {
@@ -271,24 +272,24 @@ class _DownloadPageState extends State<DownloadPage> {
                         if (t.status == DownloadStatus.running)
                           IconButton(
                             icon: const Icon(Icons.pause),
-                            tooltip: '暂停',
+                            tooltip: S.t('暂停'),
                             onPressed: () => dp.manager.pause(t.id),
                           ),
                         if (t.status == DownloadStatus.paused)
                           IconButton(
                             icon: const Icon(Icons.play_arrow),
-                            tooltip: '继续',
+                            tooltip: S.t('继续'),
                             onPressed: () => dp.manager.resume(t.id),
                           ),
                         if (t.status == DownloadStatus.failed)
                           IconButton(
                             icon: const Icon(Icons.replay),
-                            tooltip: '重试',
+                            tooltip: S.t('重试'),
                             onPressed: () => dp.manager.retry(t.id),
                           ),
                         IconButton(
                           icon: const Icon(Icons.close),
-                          tooltip: '取消',
+                          tooltip: S.t('取消'),
                           onPressed: () => dp.manager.cancel(t.id),
                         ),
                       ],

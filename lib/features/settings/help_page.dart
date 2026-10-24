@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../core/l10n/strings.dart';
 
 /// 使用教程页：教用户如何开启 RCON、SSH、使用模组管理/下载/终端等功能。
 class HelpPage extends StatelessWidget {
@@ -7,7 +8,7 @@ class HelpPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('使用教程')),
+      appBar: AppBar(title: Text(S.t('使用教程'))),
       body: ListView(
         padding: const EdgeInsets.all(12),
         children: const [
@@ -124,8 +125,7 @@ class _Intro extends StatelessWidget {
       child: Padding(
         padding: const EdgeInsets.all(14),
         child: Text(
-          '本页教您一步步开启并使用 ZV Manager 的各项功能。\n'
-          '首次使用建议按「一 → 二」顺序配置，其余功能即可解锁。',
+          '''${S.t('本页教您一步步开启并使用 ZV Manager 的各项功能。')}\n${S.t('首次使用建议按「一 → 二」顺序配置，其余功能即可解锁。')}''',
           style: Theme.of(context).textTheme.bodyMedium,
         ),
       ),
@@ -153,7 +153,7 @@ class _TutorialCard extends StatelessWidget {
       margin: const EdgeInsets.symmetric(vertical: 6),
       child: ExpansionTile(
         leading: Icon(icon),
-        title: Text(title, style: theme.textTheme.titleSmall),
+        title: Text(S.t(title), style: theme.textTheme.titleSmall),
         childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 14),
         expandedCrossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -166,7 +166,7 @@ class _TutorialCard extends StatelessWidget {
                         style: TextStyle(
                             fontWeight: FontWeight.w600,
                             color: theme.colorScheme.primary)),
-                    Expanded(child: Text(e.value)),
+                    Expanded(child: Text(S.t(e.value))),
                   ],
                 ),
               )),
@@ -184,7 +184,7 @@ class _TutorialCard extends StatelessWidget {
                 children: tips
                     .map((t) => Padding(
                           padding: const EdgeInsets.symmetric(vertical: 2),
-                          child: Text(t, style: theme.textTheme.bodySmall),
+                          child: Text(S.t(t), style: theme.textTheme.bodySmall),
                         ))
                     .toList(),
               ),

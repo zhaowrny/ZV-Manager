@@ -14,6 +14,7 @@ import '../../providers/wallpaper_provider.dart';
 import 'help_page.dart';
 import 'download_settings_page.dart';
 import '../../providers/language_provider.dart';
+import '../../core/l10n/strings.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -65,7 +66,7 @@ class _SettingsPageState extends State<SettingsPage> {
 
       if (updateInfo == null) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('获取更新信息失败')),
+          SnackBar(content: T('获取更新信息失败')),
         );
         return;
       }
@@ -75,7 +76,7 @@ class _SettingsPageState extends State<SettingsPage> {
       if (!mounted) return;
       setState(() => _checkingUpdate = false);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('检查更新失败：$e')),
+        SnackBar(content: Text(S.f('检查更新失败：{0}', [e]))),
       );
     }
   }
@@ -90,7 +91,7 @@ class _SettingsPageState extends State<SettingsPage> {
           children: [
             ListTile(
               leading: const Icon(Icons.photo, color: Colors.blue),
-              title: const Text('选择图片'),
+              title: T('选择图片'),
               onTap: () {
                 Navigator.pop(ctx);
                 _pickImage();
@@ -98,7 +99,7 @@ class _SettingsPageState extends State<SettingsPage> {
             ),
             ListTile(
               leading: const Icon(Icons.videocam, color: Colors.green),
-              title: const Text('选择视频'),
+              title: T('选择视频'),
               onTap: () {
                 Navigator.pop(ctx);
                 _pickVideo();
@@ -108,7 +109,7 @@ class _SettingsPageState extends State<SettingsPage> {
               const Divider(),
               ListTile(
                 leading: const Icon(Icons.delete, color: Colors.red),
-                title: const Text('清除背景', style: TextStyle(color: Colors.red)),
+                title: T('清除背景', style: TextStyle(color: Colors.red)),
                 onTap: () {
                   Navigator.pop(ctx);
                   _clearBackground();
@@ -145,7 +146,7 @@ class _SettingsPageState extends State<SettingsPage> {
     final mode = await showDialog<LanguageMode>(
       context: context,
       builder: (_) => SimpleDialog(
-        title: const Text('语言 / Language'),
+        title: T('语言 / Language'),
         children: [
           for (final m in LanguageMode.values)
             RadioListTile<LanguageMode>(
@@ -184,7 +185,7 @@ class _SettingsPageState extends State<SettingsPage> {
       debugPrint('保存壁纸设置失败: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('壁纸设置保存失败，请重试')),
+          SnackBar(content: T('壁纸设置保存失败，请重试')),
         );
       }
       return false;
@@ -209,7 +210,7 @@ class _SettingsPageState extends State<SettingsPage> {
       debugPrint('保存失败: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('保存失败，请重试')),
+          SnackBar(content: T('保存失败，请重试')),
         );
       }
       return null;
@@ -244,7 +245,7 @@ class _SettingsPageState extends State<SettingsPage> {
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(_currentBgPath == null ? '已清除背景' : '背景已更新 '),
+          content: Text(_currentBgPath == null ? S.t('已清除背景') : S.t('背景已更新')),
           duration: const Duration(seconds: 1),
         ),
       );
@@ -258,13 +259,13 @@ class _SettingsPageState extends State<SettingsPage> {
     final themeProvider = context.watch<ThemeProvider>();
 
     return Scaffold(
-      appBar: AppBar(title: const Text('设置')),
+      appBar: AppBar(title: T('设置')),
       body: ListView(
         children: [
           // ---------- 外观主题 ----------
           ListTile(
             leading: const Icon(Icons.palette_outlined),
-            title: const Text('外观主题'),
+            title: T('外观主题'),
             trailing: SegmentedButton<AppThemeMode>(
               segments: const [
                 ButtonSegment(value: AppThemeMode.light, icon: Icon(Icons.light_mode, size: 18)),
@@ -281,11 +282,11 @@ class _SettingsPageState extends State<SettingsPage> {
           // ---------- 应用背景（新增） ----------
           ListTile(
             leading: const Icon(Icons.wallpaper),
-            title: const Text('应用背景'),
+            title: T('应用背景'),
             subtitle: Text(
               _currentBgPath == null 
                   ? '未设置' 
-                  : '已设置 ${_currentBgType == 'video' ? ' 视频' : ' 图片'}',
+                  : S.f('已设置 {0}', [_currentBgType == 'video' ? S.t('视频') : S.t('图片')]),
             ),
             trailing: const Icon(Icons.arrow_forward_ios, size: 16),
             onTap: _showBackgroundPicker,
@@ -294,8 +295,8 @@ class _SettingsPageState extends State<SettingsPage> {
           if (_currentBgType == 'video') ...[
             SwitchListTile(
               secondary: const Icon(Icons.volume_up),
-              title: const Text('视频声音'),
-              subtitle: const Text('开启后背景视频将播放声音'),
+              title: T('视频声音'),
+              subtitle: T('开启后背景视频将播放声音'),
               value: _videoSoundEnabled,
               onChanged: (value) async {
                 await BackgroundService.setVideoSound(value);
@@ -310,7 +311,7 @@ class _SettingsPageState extends State<SettingsPage> {
           // ---------- 语言 ----------
           ListTile(
             leading: const Icon(Icons.language),
-            title: const Text('语言 / Language'),
+            title: T('语言 / Language'),
             subtitle: Text(_languageName(context.watch<LanguageProvider>().mode)),
             trailing: const Icon(Icons.chevron_right),
             onTap: () => _pickLanguage(),
@@ -320,8 +321,8 @@ class _SettingsPageState extends State<SettingsPage> {
           // ---------- 下载与镜像 ----------
           ListTile(
             leading: const Icon(Icons.download_outlined),
-            title: const Text('下载与镜像设置'),
-            subtitle: const Text('镜像线路、测速选线、同时下载任务数'),
+            title: T('下载与镜像设置'),
+            subtitle: T('镜像线路、测速选线、同时下载任务数'),
             trailing: const Icon(Icons.chevron_right),
             onTap: () => Navigator.push(
               context,
@@ -333,8 +334,8 @@ class _SettingsPageState extends State<SettingsPage> {
           // ---------- 使用教程 ----------
           ListTile(
             leading: const Icon(Icons.menu_book_outlined),
-            title: const Text('使用教程'),
-            subtitle: const Text('如何开启 RCON / SSH、模组管理、下载与终端'),
+            title: T('使用教程'),
+            subtitle: T('如何开启 RCON / SSH、模组管理、下载与终端'),
             trailing: const Icon(Icons.chevron_right),
             onTap: () => Navigator.push(
               context,
@@ -346,8 +347,8 @@ class _SettingsPageState extends State<SettingsPage> {
           // ---------- 检查更新 ----------
           ListTile(
             leading: const Icon(Icons.system_update_outlined),
-            title: const Text('检查更新'),
-            subtitle: Text('当前版本: $_currentVersion'),
+            title: T('检查更新'),
+            subtitle: Text(S.f('当前版本: {0}', [_currentVersion])),
             trailing: _checkingUpdate
                 ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
                 : const Icon(Icons.chevron_right),
@@ -358,15 +359,15 @@ class _SettingsPageState extends State<SettingsPage> {
           // ---------- 关于 ----------
           const ListTile(
             leading: Icon(Icons.info_outline),
-            title: Text('关于'),
-            subtitle: Text('开发者：Z有3笔，协作者：venti1112'),
+            title: T('关于'),
+            subtitle: T('开发者：Z有3笔，协作者：venti1112'),
           ),
           const Divider(),
 
           // ---------- 开源许可 ----------
           ListTile(
             leading: const Icon(Icons.fact_check_outlined),
-            title: const Text('开源许可'),
+            title: T('开源许可'),
             onTap: () => showLicensePage(context: context),
           ),
         ],

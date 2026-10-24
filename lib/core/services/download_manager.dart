@@ -4,6 +4,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'sftp_service.dart';
 import '../../providers/server_provider.dart';
+import '../../core/l10n/strings.dart';
 
 enum DownloadStatus { queued, running, paused, completed, failed, canceled }
 
@@ -219,7 +220,7 @@ class DownloadManager extends ChangeNotifier {
       } on DioException catch (e) {
         if (token.isCancelled) return; // 暂停/取消
         attempt++;
-        task.error = e.message ?? '网络错误';
+        task.error = e.message ?? S.t('网络错误');
         if (attempt > maxRetry) {
           _updateStatus(task.id, DownloadStatus.failed);
           notifyListeners();

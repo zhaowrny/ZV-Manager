@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/download_provider.dart';
+import '../../core/l10n/strings.dart';
 
 /// 下载与镜像设置页：镜像线路选择、测速自动选线、并发数（原下载页内设置移入此处）。
 class DownloadSettingsPage extends StatefulWidget {
@@ -24,13 +25,13 @@ class _DownloadSettingsPageState extends State<DownloadSettingsPage> {
     final dp = context.watch<DownloadProvider>();
     final mirror = dp.mirror;
     return Scaffold(
-      appBar: AppBar(title: const Text('下载与镜像设置')),
+      appBar: AppBar(title: T('下载与镜像设置')),
       body: ListView(
         children: [
           const SectionHeader('镜像线路'),
           RadioListTile<String>(
-            title: const Text('MCIM 国内镜像（推荐）'),
-            subtitle: const Text('modrinth.mcimirror.top，无需科学上网'),
+            title: T('MCIM 国内镜像（推荐）'),
+            subtitle: T('modrinth.mcimirror.top，无需科学上网'),
             value: 'mcim',
             groupValue: mirror.currentId,
             onChanged: (v) async {
@@ -39,8 +40,8 @@ class _DownloadSettingsPageState extends State<DownloadSettingsPage> {
             },
           ),
           RadioListTile<String>(
-            title: const Text('Modrinth 官方'),
-            subtitle: const Text('直连官方源，适合海外网络'),
+            title: T('Modrinth 官方'),
+            subtitle: T('直连官方源，适合海外网络'),
             value: 'official',
             groupValue: mirror.currentId,
             onChanged: (v) async {
@@ -49,7 +50,7 @@ class _DownloadSettingsPageState extends State<DownloadSettingsPage> {
             },
           ),
           RadioListTile<String>(
-            title: const Text('自定义镜像'),
+            title: T('自定义镜像'),
             subtitle: Text(mirror.currentId == 'custom' && mirror.customUrl.isNotEmpty
                 ? mirror.customUrl
                 : '使用自建/第三方镜像地址'),
@@ -61,9 +62,9 @@ class _DownloadSettingsPageState extends State<DownloadSettingsPage> {
             leading: _testing
                 ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
                 : const Icon(Icons.speed),
-            title: const Text('一键测速并选择最快线路'),
+            title: T('一键测速并选择最快线路'),
             subtitle: Text(mirror.lastSpeedMs > 0
-                ? '上次测速：${mirror.lastSpeedMs}ms（${mirror.currentName}）'
+                ? S.f('上次测速：{0}ms（{1}）', [mirror.lastSpeedMs, mirror.currentName])
                 : '自动在官方与镜像之间选择延迟最低的线路'),
             onTap: _testing
                 ? null
@@ -74,7 +75,7 @@ class _DownloadSettingsPageState extends State<DownloadSettingsPage> {
                     if (!mounted) return;
                     setState(() => _testing = false);
                     messenger.showSnackBar(SnackBar(
-                      content: Text('已选择最快线路：${mirror.currentName}（${mirror.lastSpeedMs}ms）'),
+                      content: Text(S.f('已选择最快线路：{0}（{1}ms）', [mirror.currentName, mirror.lastSpeedMs])),
                     ));
                   },
           ),
@@ -82,8 +83,8 @@ class _DownloadSettingsPageState extends State<DownloadSettingsPage> {
           const SectionHeader('下载队列'),
           ListTile(
             leading: const Icon(Icons.playlist_play),
-            title: const Text('同时下载任务数'),
-            subtitle: Text('当前：${dp.concurrency} 个（越大越占带宽，建议 1-3）'),
+            title: T('同时下载任务数'),
+            subtitle: Text(S.f('当前：{0} 个（越大越占带宽，建议 1-3）', [dp.concurrency])),
             trailing: DropdownButton<int>(
               value: dp.concurrency,
               underline: const SizedBox.shrink(),
@@ -117,14 +118,14 @@ class _DownloadSettingsPageState extends State<DownloadSettingsPage> {
     final url = await showDialog<String>(
       context: context,
       builder: (_) => AlertDialog(
-        title: const Text('自定义镜像地址'),
+        title: T('自定义镜像地址'),
         content: TextField(
           controller: ctrl,
-          decoration: const InputDecoration(hintText: 'https://your-mirror.example.com'),
+          decoration: InputDecoration(hintText: 'https://your-mirror.example.com'),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('取消')),
-          FilledButton(onPressed: () => Navigator.pop(context, ctrl.text.trim()), child: const Text('确定')),
+          TextButton(onPressed: () => Navigator.pop(context), child: T('取消')),
+          FilledButton(onPressed: () => Navigator.pop(context, ctrl.text.trim()), child: T('确定')),
         ],
       ),
     );

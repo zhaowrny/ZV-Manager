@@ -1,15 +1,16 @@
 import 'package:flutter/foundation.dart';
 import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../../core/l10n/strings.dart';
 
 /// 镜像源服务：内置 MCIM（Modrinth 国内镜像），支持自定义线路与一键测速。
 class MirrorService extends ChangeNotifier {
   static const _prefKey = 'mirror_line';
 
   /// 内置镜像线路：id → 名称。'official' 为 Modrinth 官方源。
-  static const builtinMirrors = {
-    'official': 'Modrinth 官方',
-    'mcim': 'MCIM 国内镜像 (mcimirror.top)',
+  static Map<String, String> get builtinMirrors => {
+    'official': S.t('Modrinth 官方'),
+    'mcim': S.t('MCIM 国内镜像 (mcimirror.top)'),
   };
 
   String _current = 'mcim';
@@ -20,7 +21,7 @@ class MirrorService extends ChangeNotifier {
   String get customUrl => _customUrl;
 
   String get currentName {
-    if (_current == 'custom') return '自定义 ($_customUrl)';
+    if (_current == 'custom') return S.f('自定义 ({0})', [_customUrl]);
     return builtinMirrors[_current] ?? _current;
   }
 

@@ -10,6 +10,7 @@ import '../download/download_page.dart';
 import '../mod_manager/mod_list_page.dart';
 import '../terminal/terminal_page.dart';
 import 'server_picker_bar.dart';
+import '../../core/l10n/strings.dart';
 
 /// 服务器 Dashboard：卡片式布局展示选中服务器的
 /// 在线状态 / 延迟 / 在线人数 / TPS / 磁盘（后续 Shell 采集）+ 快捷入口（M4）。
@@ -96,14 +97,14 @@ class _DashboardPageState extends State<DashboardPage> {
       final confirmed = await showDialog<bool>(
         context: context,
         builder: (_) => AlertDialog(
-          title: const Text('删除服务器'),
-          content: Text('确定要删除「${s.name}」吗？仅删除本应用中的连接配置，不影响服务器本身。'),
+          title: T('删除服务器'),
+          content: Text(S.f('确定要删除「{0}」吗？仅删除本应用中的连接配置，不影响服务器本身。', [s.name])),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('取消')),
+            TextButton(onPressed: () => Navigator.pop(context, false), child: T('取消')),
             FilledButton(
               style: FilledButton.styleFrom(backgroundColor: Colors.red),
               onPressed: () => Navigator.pop(context, true),
-              child: const Text('删除'),
+              child: T('删除'),
             ),
           ],
         ),
@@ -132,11 +133,11 @@ class _DashboardPageState extends State<DashboardPage> {
           children: [
             const Icon(Icons.warning_amber_rounded, color: Colors.white),
             const SizedBox(width: 8),
-            Expanded(child: Text('服务器「$serverName」已断开连接！')),
+            Expanded(child: Text(S.f('服务器「{0}」已断开连接！', [serverName]))),
           ],
         ),
         action: SnackBarAction(
-          label: '知道了',
+          label: S.t('知道了'),
           textColor: Colors.white,
           onPressed: messenger.hideCurrentSnackBar,
         ),
@@ -159,19 +160,19 @@ class _DashboardPageState extends State<DashboardPage> {
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
-            tooltip: '刷新状态',
+            tooltip: S.t('刷新状态'),
             onPressed: _refreshAll,
           ),
           IconButton(
             icon: const Icon(Icons.add),
-            tooltip: '添加服务器',
+            tooltip: S.t('添加服务器'),
             onPressed: _addServer,
           ),
         ],
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: _addServer,
-        tooltip: '添加服务器',
+        tooltip: S.t('添加服务器'),
         child: const Icon(Icons.add),
       ),
       body: servers.isEmpty
@@ -179,11 +180,11 @@ class _DashboardPageState extends State<DashboardPage> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Text('还没有服务器，点击下方按钮添加吧'),
+                  T('还没有服务器，点击下方按钮添加吧'),
                   const SizedBox(height: 16),
                   FilledButton.icon(
                     icon: const Icon(Icons.add),
-                    label: const Text('添加服务器'),
+                    label: T('添加服务器'),
                     onPressed: _addServer,
                   ),
                 ],
@@ -200,7 +201,7 @@ class _DashboardPageState extends State<DashboardPage> {
                     subtitle: Text('${selected?.host ?? '-'}:${selected?.port ?? '-'}'),
                     trailing: DropdownButton<ServerConfig>(
                       underline: const SizedBox.shrink(),
-                      hint: const Text('切换'),
+                      hint: T('切换'),
                       items: servers
                           .map((s) => DropdownMenuItem(value: s, child: Text(s.name)))
                           .toList(),
@@ -230,7 +231,7 @@ class _DashboardPageState extends State<DashboardPage> {
                     _statusCard(
                       icon: Icons.person,
                       color: Colors.blue,
-                      label: '在线人数',
+                      label: S.t('在线人数'),
                       sub: '${status?.playerCount ?? 0}',
                     ),
                     _statusCard(
@@ -242,14 +243,14 @@ class _DashboardPageState extends State<DashboardPage> {
                     _statusCard(
                       icon: Icons.storage,
                       color: Colors.purple,
-                      label: '磁盘',
+                      label: S.t('磁盘'),
                       sub: '需 SSH 终端',
                     ),
                   ],
                 ),
                 const SizedBox(height: 8),
                 // 服务器卡片列表（点击选中）
-                Text('服务器', style: Theme.of(context).textTheme.titleMedium),
+                T('服务器', style: Theme.of(context).textTheme.titleMedium),
                 ...servers.map((s) {
                   final st = _status[s.id];
                   final isSel = selected?.id == s.id;
@@ -264,9 +265,8 @@ class _DashboardPageState extends State<DashboardPage> {
                       title: Text(s.name),
                       subtitle: Text(
                         st?.online == true
-                            ? '在线 · ${st!.latencyMs}ms · ${st.playerCount} 人'
-                                '${st.tps != null ? " · TPS ${st.tps!.toStringAsFixed(1)}" : ""}'
-                            : '离线',
+                            ? S.f('在线 · {0}ms · {1} 人', [st!.latencyMs, st.playerCount]) + (st.tps != null ? ' · TPS ${st.tps!.toStringAsFixed(1)}' : '')
+                            : S.t('离线'),
                       ),
                       trailing: Row(
                         mainAxisSize: MainAxisSize.min,
@@ -275,8 +275,8 @@ class _DashboardPageState extends State<DashboardPage> {
                           PopupMenuButton<String>(
                             onSelected: (a) => _onServerAction(context, s, a),
                             itemBuilder: (_) => const [
-                              PopupMenuItem(value: 'edit', child: Text('编辑')),
-                              PopupMenuItem(value: 'delete', child: Text('删除')),
+                              PopupMenuItem(value: 'edit', child: T('编辑')),
+                              PopupMenuItem(value: 'delete', child: T('删除')),
                             ],
                           ),
                         ],
@@ -295,8 +295,8 @@ class _DashboardPageState extends State<DashboardPage> {
                     children: [
                       ListTile(
                         leading: const Icon(Icons.download_outlined),
-                        title: const Text('下载中心'),
-                        subtitle: const Text('Modrinth 搜索 · 镜像加速'),
+                        title: T('下载中心'),
+                        subtitle: T('Modrinth 搜索 · 镜像加速'),
                         trailing: const Icon(Icons.chevron_right),
                         onTap: () => Navigator.push(
                           context,
@@ -305,7 +305,7 @@ class _DashboardPageState extends State<DashboardPage> {
                       ),
                       ListTile(
                         leading: const Icon(Icons.terminal),
-                        title: const Text('远程终端'),
+                        title: T('远程终端'),
                         subtitle: const Text('SSH Shell'),
                         trailing: const Icon(Icons.chevron_right),
                         onTap: () => Navigator.push(
@@ -315,8 +315,8 @@ class _DashboardPageState extends State<DashboardPage> {
                       ),
                       ListTile(
                         leading: const Icon(Icons.extension_outlined),
-                        title: const Text('模组管理'),
-                        subtitle: const Text('上传 / 删除 / 查看依赖'),
+                        title: T('模组管理'),
+                        subtitle: T('上传 / 删除 / 查看依赖'),
                         trailing: const Icon(Icons.chevron_right),
                         onTap: () => Navigator.push(
                           context,

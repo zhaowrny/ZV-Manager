@@ -6,6 +6,7 @@ import 'jar_metadata.dart';
 import 'sftp_service.dart';
 import 'package:dartssh2/dartssh2.dart' show SftpName;
 import '../../providers/server_provider.dart';
+import '../../core/l10n/strings.dart';
 
 /// 本地依赖索引库（SQLite）：
 /// 1. 记录服务器 mods/plugins 下每个 jar 的元数据与依赖；
@@ -167,7 +168,7 @@ class SyncResult {
   int unchanged = 0;
   int total = 0;
   @override
-  String toString() => '新增 $added · 更新 $updated · 未变化 $unchanged · 共 $total 条';
+  String toString() => S.f('新增 {0} · 更新 {1} · 未变化 {2} · 共 {3} 条', [added, updated, unchanged, total]);
 }
 
 class IndexedMod {

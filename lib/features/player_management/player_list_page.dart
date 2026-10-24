@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../core/utils/rcon_client.dart';
 import 'player_service.dart';
+import '../../core/l10n/strings.dart';
 
 /// 玩家管理页：展示当前在线玩家的完整列表（含 UUID）。
 class PlayerListPage extends StatefulWidget {
@@ -52,12 +53,12 @@ class _PlayerListPageState extends State<PlayerListPage> {
       final result = await action();
       if (!mounted) return;
       ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('$actionName：${stripMinecraftCodes(result ?? '无响应')}'), duration: const Duration(seconds: 2)));
+          .showSnackBar(SnackBar(content: Text(S.f('{0}：{1}', [actionName, stripMinecraftCodes(result ?? S.t('无响应'))])), duration: const Duration(seconds: 2)));
       await _load();
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('$actionName失败：$e'), backgroundColor: Colors.red));
+          .showSnackBar(SnackBar(content: Text(S.f('{0}失败：{1}', [actionName, e.toString()])), backgroundColor: Colors.red));
     }
   }
 
@@ -101,11 +102,11 @@ class _PlayerListPageState extends State<PlayerListPage> {
     });
   }
 
-  static const _actionLabels = {
-    'op': '给予OP',
-    'deop': '取消OP',
-    'kick': '踢出',
-    'ban': '封禁',
+  static Map<String, String> get _actionLabels => {
+    'op': S.t('给予OP'),
+    'deop': S.t('取消OP'),
+    'kick': S.t('踢出'),
+    'ban': S.t('封禁'),
   };
 
   /// 对选中的所有玩家执行批量操作。
@@ -118,7 +119,7 @@ class _PlayerListPageState extends State<PlayerListPage> {
 
     String? reason;
     if (action == 'kick' || action == 'ban') {
-      reason = await _showReasonDialog(_actionLabels[action]!, '${names.length}名玩家');
+      reason = await _showReasonDialog(_actionLabels[action]!, S.f('{0} 名玩家', [names.length]));
       if (reason == null) return; // 用户取消
     }
 
@@ -144,7 +145,7 @@ class _PlayerListPageState extends State<PlayerListPage> {
     if (!mounted) return;
     final label = _actionLabels[action]!;
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text('$label完成：成功 $success 人${fail > 0 ? '，失败 $fail 人' : ''}'),
+      content: Text(S.f('{0}完成：成功 {1} 人', [label, success]) + (fail > 0 ? S.f('，失败 {0} 人', [fail]) : '')),
       duration: const Duration(seconds: 2),
     ));
     await _load();
@@ -163,20 +164,20 @@ class _PlayerListPageState extends State<PlayerListPage> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('将对「$player」执行该操作'),
+              Text(S.f('将对「{0}」执行该操作', [player])),
               const SizedBox(height: 12),
               TextField(
                 controller: controller,
                 autofocus: true,
-                decoration: const InputDecoration(hintText: '原因（可选）'),
+                decoration: InputDecoration(hintText: S.t('原因（可选）')),
               ),
             ],
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('取消')),
+            TextButton(onPressed: () => Navigator.pop(ctx, false), child: T('取消')),
             TextButton(
               onPressed: () => Navigator.pop(ctx, true),
-              child: const Text('确认', style: TextStyle(color: Colors.red)),
+              child: T('确认', style: TextStyle(color: Colors.red)),
             ),
           ],
         ),
@@ -196,16 +197,16 @@ class _PlayerListPageState extends State<PlayerListPage> {
         leading: _selecting
             ? IconButton(
                 icon: const Icon(Icons.close),
-                tooltip: '退出选择',
+                tooltip: S.t('退出选择'),
                 onPressed: _exitSelection,
               )
             : null,
-        title: Text(_selecting ? '已选 ${_selected.length} 人' : '玩家管理'),
+        title: Text(_selecting ? S.f('已选 {0} 人', [_selected.length]) : S.t('玩家管理')),
         actions: [
           if (_selecting) ...[
             IconButton(
               icon: const Icon(Icons.select_all),
-              tooltip: '全选',
+              tooltip: S.t('全选'),
               onPressed: () {
                 setState(() => _selected
                   ..clear()
@@ -215,12 +216,12 @@ class _PlayerListPageState extends State<PlayerListPage> {
           ] else
             IconButton(
               icon: const Icon(Icons.checklist_outlined),
-              tooltip: '批量操作',
+              tooltip: S.t('批量操作'),
               onPressed: _loading ? null : _enterSelection,
             ),
           IconButton(
             icon: const Icon(Icons.refresh),
-            tooltip: '刷新',
+            tooltip: S.t('刷新'),
             onPressed: _loading ? null : _load,
           ),
         ],
@@ -238,10 +239,10 @@ class _PlayerListPageState extends State<PlayerListPage> {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: [
-            _buildBatchButton('op', Icons.admin_panel_settings_outlined, '给予OP', Colors.green),
-            _buildBatchButton('deop', Icons.remove_moderator_outlined, '取消OP', Colors.orange),
-            _buildBatchButton('kick', Icons.logout, '踢出', Colors.blue),
-            _buildBatchButton('ban', Icons.block, '封禁', Colors.red),
+            _buildBatchButton('op', Icons.admin_panel_settings_outlined, S.t('给予OP'), Colors.green),
+            _buildBatchButton('deop', Icons.remove_moderator_outlined, S.t('取消OP'), Colors.orange),
+            _buildBatchButton('kick', Icons.logout, S.t('踢出'), Colors.blue),
+            _buildBatchButton('ban', Icons.block, S.t('封禁'), Colors.red),
           ],
         ),
       ),
@@ -276,16 +277,16 @@ class _PlayerListPageState extends State<PlayerListPage> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Text('加载失败：$_error', textAlign: TextAlign.center),
+            Text(S.f('加载失败：{0}', [_error.toString()]), textAlign: TextAlign.center),
             const SizedBox(height: 12),
-            FilledButton(onPressed: _load, child: const Text('重试')),
+            FilledButton(onPressed: _load, child: T('重试')),
           ],
         ),
       );
     }
     final players = _players ?? [];
     if (players.isEmpty) {
-      return Center(child: Text('暂无在线玩家', style: theme.textTheme.bodyLarge));
+      return Center(child: T('暂无在线玩家', style: theme.textTheme.bodyLarge));
     }
     return RefreshIndicator(
       onRefresh: _load,
@@ -320,13 +321,13 @@ class _PlayerListPageState extends State<PlayerListPage> {
                           visualDensity: VisualDensity.compact,
                         ),
                       PopupMenuButton<String>(
-                        tooltip: '操作',
+                        tooltip: S.t('操作'),
                         onSelected: (action) => _handleAction(p, action),
                         itemBuilder: (_) => [
-                          const PopupMenuItem(value: 'op', child: Text('给予 OP')),
-                          const PopupMenuItem(value: 'deop', child: Text('取消 OP')),
-                          const PopupMenuItem(value: 'kick', child: Text('踢出')),
-                          const PopupMenuItem(value: 'ban', child: Text('封禁')),
+                          const PopupMenuItem(value: 'op', child: T('给予 OP')),
+                          const PopupMenuItem(value: 'deop', child: T('取消 OP')),
+                          const PopupMenuItem(value: 'kick', child: T('踢出')),
+                          const PopupMenuItem(value: 'ban', child: T('封禁')),
                         ],
                       ),
                     ],

@@ -2,6 +2,7 @@ import 'dart:typed_data';
 import 'package:dartssh2/dartssh2.dart';
 import 'dart:io' as io;
 import '../../providers/server_provider.dart';
+import '../../core/l10n/strings.dart';
 
 /// 基于 dartssh2 的 SFTP 文件服务。
 /// 一次连接同时支持列目录 / 上传 / 下载 / 删除 / 重命名，
@@ -103,7 +104,7 @@ class SftpService {
   SftpClient _requireSftp() {
     final sftp = _sftp;
     if (sftp == null || !isConnected) {
-      throw StateError('SFTP 未连接，请先调用 connect()');
+      throw StateError(S.t('SFTP 未连接，请先调用 connect()'));
     }
     return sftp;
   }

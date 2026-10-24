@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../../core/services/dependency_index_service.dart';
 import '../../providers/download_provider.dart';
 import '../../providers/server_provider.dart';
+import '../../core/l10n/strings.dart';
 
 /// 依赖仓库页：服务器本地仓库增量同步 + 依赖树查询 + 缺失依赖一键补齐 + 重复检测。
 class DependencyTreePage extends StatefulWidget {
@@ -48,7 +49,7 @@ class _DependencyTreePageState extends State<DependencyTreePage> {
       if (!mounted) return;
       setState(() {
         _syncing = false;
-        _syncInfo = '同步失败：$e';
+        _syncInfo = S.f('同步失败：{0}', [e]);
       });
     }
   }
@@ -66,24 +67,24 @@ class _DependencyTreePageState extends State<DependencyTreePage> {
             Text('${tree.mod.name ?? tree.mod.fileName} ${tree.mod.version ?? ''}',
                 style: Theme.of(context).textTheme.titleMedium),
             const Divider(),
-            const Text('该模组依赖：'),
+            T('该模组依赖：'),
             ...tree.dependsOn.map((m) => ListTile(
                   dense: true,
                   leading: const Icon(Icons.link, size: 18),
                   title: Text('${m.name ?? m.fileName} ${m.version ?? ''}'),
                 )),
-            if (tree.dependsOn.isEmpty) const Text('无', style: TextStyle(color: Colors.grey)),
+            if (tree.dependsOn.isEmpty) T('无', style: TextStyle(color: Colors.grey)),
             const SizedBox(height: 8),
-            const Text('被以下模组依赖：'),
+            T('被以下模组依赖：'),
             ...tree.dependents.map((m) => ListTile(
                   dense: true,
                   leading: const Icon(Icons.link, size: 18),
                   title: Text('${m.name ?? m.fileName} ${m.version ?? ''}'),
                 )),
-            if (tree.dependents.isEmpty) const Text('无', style: TextStyle(color: Colors.grey)),
+            if (tree.dependents.isEmpty) T('无', style: TextStyle(color: Colors.grey)),
             if (tree.missing.isNotEmpty) ...[
               const SizedBox(height: 8),
-              const Text('缺失依赖（可一键补齐）：',
+              T('缺失依赖（可一键补齐）：',
                   style: TextStyle(color: Colors.red, fontWeight: FontWeight.w600)),
               ...tree.missing.map((d) => ListTile(
                     dense: true,
@@ -91,7 +92,7 @@ class _DependencyTreePageState extends State<DependencyTreePage> {
                     title: Text(d),
                     trailing: TextButton(
                       onPressed: () => _fetchMissing(d),
-                      child: const Text('从 Modrinth 补齐'),
+                      child: T('从 Modrinth 补齐'),
                     ),
                   )),
             ],
@@ -105,21 +106,21 @@ class _DependencyTreePageState extends State<DependencyTreePage> {
     final dp = context.read<DownloadProvider>();
     try {
       final results = await dp.search(name, projectType: 'mod', limit: 1);
-      if (results.isEmpty) throw '未找到 $name';
+      if (results.isEmpty) throw S.f('未找到 {0}', [name]);
       final project = results.first;
       final versions = await dp.versions(project.projectId);
-      if (versions.isEmpty) throw '该项目没有可用版本';
+      if (versions.isEmpty) throw S.t('该项目没有可用版本');
       final v = versions.first;
-      if (v.files.isEmpty) throw '没有可用文件';
+      if (v.files.isEmpty) throw S.t('没有可用文件');
       final primary = v.files.firstWhere((f) => f['primary'] == true, orElse: () => v.files.first);
       await dp.download(url: primary['url'], fileName: primary['filename'], projectType: 'mod');
       if (mounted) {
         Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('已下载 $name（${v.versionNumber}）')));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(S.f('已下载 {0}（{1}）', [name, v.versionNumber]))));
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('补齐失败：$e')));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(S.f('补齐失败：{0}', [e]))));
       }
     }
   }
@@ -134,18 +135,18 @@ class _DependencyTreePageState extends State<DependencyTreePage> {
           shrinkWrap: true,
           padding: const EdgeInsets.all(16),
           children: [
-            Text('版本冲突 / 重复 jar', style: Theme.of(context).textTheme.titleMedium),
+            Text(S.t('版本冲突 / 重复 jar'), style: Theme.of(context).textTheme.titleMedium),
             const Divider(),
-            if (dups.isEmpty) const Text('未发现重复'),
+            if (dups.isEmpty) T('未发现重复'),
             ...dups.map((g) => ExpansionTile(
                   title: Text(g.modId,
                       style: const TextStyle(color: Colors.orange, fontWeight: FontWeight.w600)),
-                  subtitle: Text('${g.items.length} 个版本共存'),
+                  subtitle: Text(S.f('{0} 个版本共存', [g.items.length])),
                   children: g.items
                       .map((m) => ListTile(
                             dense: true,
                             title: Text(m.fileName),
-                            subtitle: Text('版本 ${m.version ?? '未知'} · ${m.remotePath}'),
+                            subtitle: Text('${m.version ?? S.t('未知')} · ${m.remotePath}'),
                           ))
                       .toList(),
                 )),
@@ -159,11 +160,11 @@ class _DependencyTreePageState extends State<DependencyTreePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('依赖仓库'),
+        title: T('依赖仓库'),
         actions: [
           IconButton(
             icon: const Icon(Icons.rule),
-            tooltip: '重复检测',
+            tooltip: S.t('重复检测'),
             onPressed: _checkDuplicates,
           ),
         ],
@@ -181,7 +182,7 @@ class _DependencyTreePageState extends State<DependencyTreePage> {
                   icon: _syncing
                       ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
                       : const Icon(Icons.sync),
-                  label: const Text('同步'),
+                  label: T('同步'),
                   onPressed: _syncing ? null : _sync,
                 ),
               ],
@@ -195,11 +196,11 @@ class _DependencyTreePageState extends State<DependencyTreePage> {
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            const Text('索引为空，先点击「同步」'),
+                            T('索引为空，先点击「同步」'),
                             if (!widget.server.hasSsh)
                               const Padding(
                                 padding: EdgeInsets.all(8),
-                                child: Text('（该服务器未配置 SSH，无法同步）',
+                                child: T('（该服务器未配置 SSH，无法同步）',
                                     style: TextStyle(color: Colors.red)),
                               ),
                           ],
@@ -213,7 +214,7 @@ class _DependencyTreePageState extends State<DependencyTreePage> {
                             leading: const Icon(Icons.inventory_2_outlined),
                             title: Text('${m.name ?? m.fileName} ${m.version ?? ''}'),
                             subtitle: Text(
-                              '${m.fileName} · 依赖 ${m.depends.length} · 软依赖 ${m.softDepends.length}',
+                              S.f('{0} · 依赖 {1} · 软依赖 {2}', [m.fileName, m.depends.length, m.softDepends.length]),
                             ),
                             trailing: const Icon(Icons.account_tree_outlined),
                             onTap: () => _showTree(m),

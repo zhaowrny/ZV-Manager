@@ -7,6 +7,7 @@ import '../dashboard/server_picker_bar.dart';
 import 'mod_provider.dart';
 import 'mod_detail_page.dart';
 import 'dependency_tree_page.dart';
+import '../../core/l10n/strings.dart';
 
 /// 模组/插件管理页：列出服务器 mods / plugins 目录中的 jar 文件，
 /// 支持上传 / 删除 / 重命名 / 查看详情（M1）。
@@ -53,7 +54,7 @@ class _ModListPageState extends State<ModListPage>
     super.build(context);
     final server = context.watch<SelectedServerHolder>().server;
     if (server == null) {
-      return const Center(child: Text('请先在「服务器」页选择一台服务器'));
+      return const Center(child: T('请先在「服务器」页选择一台服务器'));
     }
     if (!server.hasSsh) {
       return _NoSshHint(serverName: server.name);
@@ -67,16 +68,16 @@ class _ModListPageState extends State<ModListPage>
         return Scaffold(
           backgroundColor: hasWallpaper ? Colors.transparent : null,
           appBar: AppBar(
-            title: const Text('模组管理'),
+            title: T('模组管理'),
             actions: [
               IconButton(
                 icon: const Icon(Icons.refresh),
                 onPressed: mod.loading ? null : mod.refresh,
-                tooltip: '刷新',
+                tooltip: S.t('刷新'),
               ),
               IconButton(
                 icon: const Icon(Icons.account_tree_outlined),
-                tooltip: '依赖仓库',
+                tooltip: S.t('依赖仓库'),
                 onPressed: () => Navigator.push(
                   context,
                   MaterialPageRoute(
@@ -107,9 +108,9 @@ class _ModListPageState extends State<ModListPage>
                       icon: const Icon(Icons.sort),
                       onSelected: (m) => mod.setSortMode(m),
                       itemBuilder: (_) => const [
-                        PopupMenuItem(value: ModSortMode.name, child: Text('按名称')),
-                        PopupMenuItem(value: ModSortMode.size, child: Text('按大小')),
-                        PopupMenuItem(value: ModSortMode.mtime, child: Text('按修改时间')),
+                        PopupMenuItem(value: ModSortMode.name, child: T('按名称')),
+                        PopupMenuItem(value: ModSortMode.size, child: T('按大小')),
+                        PopupMenuItem(value: ModSortMode.mtime, child: T('按修改时间')),
                       ],
                     ),
                   ],
@@ -119,12 +120,12 @@ class _ModListPageState extends State<ModListPage>
               if (mod.error != null)
                 Padding(
                   padding: const EdgeInsets.all(12),
-                  child: Text('加载失败：${mod.error}',
+                  child: Text(S.f('加载失败：{0}', [mod.error.toString()]),
                       style: TextStyle(color: Theme.of(context).colorScheme.error)),
                 ),
               Expanded(
                 child: mod.files.isEmpty && !mod.loading
-                    ? const Center(child: Text('目录下没有 .jar 文件'))
+                    ? const Center(child: T('目录下没有 .jar 文件'))
                     : ListView.builder(
                         itemCount: mod.files.length,
                         itemBuilder: (context, i) {
@@ -139,9 +140,9 @@ class _ModListPageState extends State<ModListPage>
                             trailing: PopupMenuButton<String>(
                               onSelected: (a) => _onAction(context, mod, f, a),
                               itemBuilder: (_) => const [
-                                PopupMenuItem(value: 'detail', child: Text('详情')),
-                                PopupMenuItem(value: 'rename', child: Text('重命名')),
-                                PopupMenuItem(value: 'delete', child: Text('删除')),
+                                PopupMenuItem(value: 'detail', child: T('详情')),
+                                PopupMenuItem(value: 'rename', child: T('重命名')),
+                                PopupMenuItem(value: 'delete', child: T('删除')),
                               ],
                             ),
                             onTap: () => Navigator.push(
@@ -158,7 +159,7 @@ class _ModListPageState extends State<ModListPage>
           ),
           floatingActionButton: FloatingActionButton.extended(
             icon: const Icon(Icons.upload_file),
-            label: const Text('上传 jar'),
+            label: T('上传 jar'),
             onPressed: mod.loading ? null : () => _upload(context, mod),
           ),
         );
@@ -177,7 +178,7 @@ class _ModListPageState extends State<ModListPage>
     } catch (e) {
       if (context.mounted) {
         ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('上传失败：$e')));
+            .showSnackBar(SnackBar(content: Text(S.f('上传失败：{0}', [e.toString()]))));
       }
     }
   }
@@ -189,11 +190,11 @@ class _ModListPageState extends State<ModListPage>
         final ok = await showDialog<bool>(
           context: context,
           builder: (_) => AlertDialog(
-            title: const Text('确认删除'),
-            content: Text('确定要删除 ${f.fileName} 吗？此操作不可恢复。'),
+            title: T('确认删除'),
+            content: Text(S.f('确定要删除 {0} 吗？此操作不可恢复。', [f.fileName])),
             actions: [
-              TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('取消')),
-              FilledButton(onPressed: () => Navigator.pop(context, true), child: const Text('删除')),
+              TextButton(onPressed: () => Navigator.pop(context, false), child: T('取消')),
+              FilledButton(onPressed: () => Navigator.pop(context, true), child: T('删除')),
             ],
           ),
         );
@@ -204,13 +205,13 @@ class _ModListPageState extends State<ModListPage>
         final newName = await showDialog<String>(
           context: context,
           builder: (_) => AlertDialog(
-            title: const Text('重命名'),
+            title: T('重命名'),
             content: TextField(controller: ctrl, autofocus: true),
             actions: [
-              TextButton(onPressed: () => Navigator.pop(context), child: const Text('取消')),
+              TextButton(onPressed: () => Navigator.pop(context), child: T('取消')),
               FilledButton(
                   onPressed: () => Navigator.pop(context, ctrl.text.trim()),
-                  child: const Text('确定')),
+                  child: T('确定')),
             ],
           ),
         );
@@ -242,7 +243,7 @@ class _NoSshHint extends StatelessWidget {
           children: [
             const Icon(Icons.no_encryption_outlined, size: 56),
             const SizedBox(height: 12),
-            Text('$serverName 未配置 SSH'),
+            Text(S.f('{0} 未配置 SSH', [serverName])),
             const SizedBox(height: 8),
             const Text(
               '模组管理需要 SSH 连接。请在「服务器」页编辑该服务器，\n开启 SSH 并填写用户名和密码。',

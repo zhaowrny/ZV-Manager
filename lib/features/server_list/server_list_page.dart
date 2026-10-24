@@ -9,6 +9,7 @@ import '../console/console_page.dart';
 import '../settings/settings_page.dart';
 import 'server_card.dart';
 import 'server_form_dialog.dart';
+import '../../core/l10n/strings.dart';
 
 class ServerListPage extends StatefulWidget {
   const ServerListPage({super.key});
@@ -101,7 +102,7 @@ class _ServerListPageState extends State<ServerListPage> {
               children: [
                 CircularProgressIndicator(),
                 SizedBox(height: 16),
-                Text('正在连接...'),
+                T('正在连接...'),
               ],
             ),
           ),
@@ -128,7 +129,7 @@ class _ServerListPageState extends State<ServerListPage> {
       );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('连接失败：$error')),
+        SnackBar(content: Text(S.f('连接失败：{0}', [error.toString()]))),
       );
     }
   }
@@ -165,16 +166,16 @@ class _ServerListPageState extends State<ServerListPage> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
-        title: const Text('确认删除'),
-        content: Text('确定要删除服务器「${server.name}」吗？'),
+        title: T('确认删除'),
+        content: Text(S.f('确定要删除服务器「{0}」吗？', [server.name])),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('取消'),
+            child: T('取消'),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('删除', style: TextStyle(color: Colors.red)),
+            child: T('删除', style: TextStyle(color: Colors.red)),
           ),
         ],
       ),
@@ -198,7 +199,7 @@ class _ServerListPageState extends State<ServerListPage> {
         actions: [
           IconButton(
             icon: const Icon(Icons.settings_outlined),
-            tooltip: '设置',
+            tooltip: S.t('设置'),
             onPressed: () => Navigator.push(
               context,
               MaterialPageRoute(builder: (_) => const SettingsPage()),
@@ -239,7 +240,7 @@ class _ServerListPageState extends State<ServerListPage> {
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _addServer,
         icon: const Icon(Icons.add),
-        label: const Text('添加服务器'),
+        label: T('添加服务器'),
       ),
     );
   }
@@ -274,14 +275,14 @@ class _EmptyState extends StatelessWidget {
             ),
             const SizedBox(height: 20),
             Text(
-              '还没有添加服务器',
+              S.t('还没有添加服务器'),
               style: theme.textTheme.titleMedium?.copyWith(
                 fontWeight: FontWeight.w600,
               ),
             ),
             const SizedBox(height: 8),
             Text(
-              '填入主机地址与 RCON 密码，即可在手机上管理',
+              S.t('填入主机地址与 RCON 密码，即可在手机上管理'),
               textAlign: TextAlign.center,
               style: theme.textTheme.bodySmall?.copyWith(
                 color: scheme.onSurfaceVariant,
@@ -291,7 +292,7 @@ class _EmptyState extends StatelessWidget {
             FilledButton.icon(
               onPressed: onAdd,
               icon: const Icon(Icons.add),
-              label: const Text('添加服务器'),
+              label: T('添加服务器'),
             ),
           ],
         ),

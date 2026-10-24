@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import '../../core/utils/command_preset_service.dart';
 import '../../core/utils/rcon_client.dart';
 import '../player_management/player_list_page.dart';
+import '../../core/l10n/strings.dart';
 
 class ConsolePage extends StatefulWidget {
   final RconClient rconClient;
@@ -30,12 +31,12 @@ class _ConsolePageState extends State<ConsolePage> {
     super.initState();
     widget.rconClient.onDisconnected = () {
       if (mounted) {
-        setState(() => _outputLines.add(_LogLine(text: '[警告] 连接断开，正在重连...', isError: true)));
+        setState(() => _outputLines.add(_LogLine(text: S.t('[警告] 连接断开，正在重连...'), isError: true)));
       }
     };
     widget.rconClient.onReconnected = () {
       if (mounted) {
-        setState(() => _outputLines.add(_LogLine(text: '[信息] 重连成功', isCommand: false)));
+        setState(() => _outputLines.add(_LogLine(text: S.t('[信息] 重连成功'), isCommand: false)));
       }
     };
     _loadPresets();
@@ -85,13 +86,13 @@ class _ConsolePageState extends State<ConsolePage> {
       final response = await widget.rconClient.executeCommand(cmd);
       setState(() {
         _outputLines.add(_LogLine(
-          text: stripMinecraftCodes(response ?? '(无响应)'),
+          text: stripMinecraftCodes(response ?? S.t('(无响应)')),
           isCommand: false,
         ));
       });
     } catch (e) {
       setState(() {
-        _outputLines.add(_LogLine(text: '[错误] $e', isCommand: false, isError: true));
+        _outputLines.add(_LogLine(text: S.f('[错误] {0}', [e.toString()]), isCommand: false, isError: true));
       });
     }
     _scrollToBottom();
@@ -107,7 +108,7 @@ class _ConsolePageState extends State<ConsolePage> {
       _controller.selection = TextSelection.fromPosition(TextPosition(offset: matches.first.length));
     } else if (matches.length > 1) {
       setState(() {
-        _outputLines.add(_LogLine(text: '建议：${matches.join(", ")}', isCommand: false));
+        _outputLines.add(_LogLine(text: S.f('建议：{0}', [matches.join(", ")]), isCommand: false));
       });
       _scrollToBottom();
     }
@@ -148,11 +149,11 @@ class _ConsolePageState extends State<ConsolePage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('服务器控制台'),
+        title: T('服务器控制台'),
         actions: [
           IconButton(
             icon: const Icon(Icons.people_outline),
-            tooltip: '玩家管理',
+            tooltip: S.t('玩家管理'),
             onPressed: () => Navigator.push(
               context,
               MaterialPageRoute(builder: (_) => PlayerListPage(rconClient: widget.rconClient)),
@@ -212,7 +213,7 @@ class _ConsolePageState extends State<ConsolePage> {
                       child: TextField(
                         controller: _controller,
                         decoration: InputDecoration(
-                          hintText: '输入命令...',
+                          hintText: S.t('输入命令...'),
                           contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                         ),
                         style: const TextStyle(fontFamily: 'monospace', fontSize: 14),
@@ -224,7 +225,7 @@ class _ConsolePageState extends State<ConsolePage> {
                   FilledButton.icon(
                     onPressed: _executeCommand,
                     icon: const Icon(Icons.send_rounded, size: 18),
-                    label: const Text('发送'),
+                    label: T('发送'),
                   ),
                 ],
               ),
@@ -298,7 +299,7 @@ class _PresetBar extends StatelessWidget {
           ),
           IconButton(
             icon: const Icon(Icons.tune_rounded, size: 20),
-            tooltip: '管理快速命令',
+            tooltip: S.t('管理快速命令'),
             onPressed: onManage,
           ),
           const SizedBox(width: 4),
@@ -350,15 +351,15 @@ class _PresetManageSheetState extends State<_PresetManageSheet> {
           children: [
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-              child: Text('快速命令', style: theme.textTheme.titleMedium),
+              child: T('快速命令', style: theme.textTheme.titleMedium),
             ),
             const Padding(
               padding: EdgeInsets.symmetric(horizontal: 16),
-              child: Text('点击标签一键发送，点击右侧按钮编辑'),
+              child: T('点击标签一键发送，点击右侧按钮编辑'),
             ),
             Expanded(
               child: _presets.isEmpty
-                  ? const Center(child: Text('暂无预设，点击下方按钮添加'))
+                  ? const Center(child: T('暂无预设，点击下方按钮添加'))
                   : ListView.builder(
                       itemCount: _presets.length,
                       itemBuilder: (context, i) {
@@ -377,17 +378,17 @@ class _PresetManageSheetState extends State<_PresetManageSheet> {
                             children: [
                               IconButton(
                                 icon: const Icon(Icons.send_rounded, size: 20),
-                                tooltip: '发送',
+                                tooltip: S.t('发送'),
                                 onPressed: () => widget.onSend(preset.command),
                               ),
                               IconButton(
                                 icon: const Icon(Icons.edit_outlined, size: 20),
-                                tooltip: '编辑',
+                                tooltip: S.t('编辑'),
                                 onPressed: () => _editPreset(preset: preset),
                               ),
                               IconButton(
                                 icon: const Icon(Icons.delete_outline, size: 20),
-                                tooltip: '删除',
+                                tooltip: S.t('删除'),
                                 onPressed: () => setState(() => _presets.removeAt(i)),
                               ),
                             ],
@@ -403,12 +404,12 @@ class _PresetManageSheetState extends State<_PresetManageSheet> {
                   OutlinedButton.icon(
                     onPressed: () => _editPreset(),
                     icon: const Icon(Icons.add, size: 18),
-                    label: const Text('新增'),
+                    label: T('新增'),
                   ),
                   const Spacer(),
                   FilledButton(
                     onPressed: () => Navigator.pop(context, _presets),
-                    child: const Text('完成'),
+                    child: T('完成'),
                   ),
                 ],
               ),
@@ -448,19 +449,19 @@ class _PresetEditDialogState extends State<_PresetEditDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: Text(widget.preset == null ? '新增预设' : '编辑预设'),
+      title: Text(widget.preset == null ? S.t('新增预设') : S.t('编辑预设')),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           TextField(
             controller: _labelController,
-            decoration: const InputDecoration(labelText: '标签', hintText: '例如：立即存档'),
+            decoration: InputDecoration(labelText: S.t('标签'), hintText: S.t('例如：立即存档')),
             autofocus: true,
           ),
           const SizedBox(height: 12),
           TextField(
             controller: _commandController,
-            decoration: const InputDecoration(labelText: '命令', hintText: '例如：save-all'),
+            decoration: InputDecoration(labelText: S.t('命令'), hintText: S.t('例如：save-all')),
             style: const TextStyle(fontFamily: 'monospace'),
           ),
         ],
@@ -468,7 +469,7 @@ class _PresetEditDialogState extends State<_PresetEditDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context),
-          child: const Text('取消'),
+          child: T('取消'),
         ),
         FilledButton(
           onPressed: () {
@@ -476,13 +477,13 @@ class _PresetEditDialogState extends State<_PresetEditDialog> {
             final command = _commandController.text.trim();
             if (label.isEmpty || command.isEmpty) {
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('标签和命令都不能为空')),
+                const SnackBar(content: T('标签和命令都不能为空')),
               );
               return;
             }
             Navigator.pop(context, _PresetEditResult(label: label, command: command));
           },
-          child: const Text('保存'),
+          child: T('保存'),
         ),
       ],
     );

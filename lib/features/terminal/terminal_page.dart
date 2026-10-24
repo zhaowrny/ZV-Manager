@@ -6,6 +6,7 @@ import 'package:xterm/ui.dart' show TerminalView;
 import '../../core/services/ssh_shell_service.dart';
 
 import '../../providers/server_provider.dart';
+import '../../core/l10n/strings.dart';
 
 
 /// SSH 终端页：xterm 终端 + 快捷键栏 + 多服务器会话标签（M3）。
@@ -83,7 +84,7 @@ class _TerminalPageState extends State<TerminalPage>
       return const Center(
         child: Padding(
           padding: EdgeInsets.all(24),
-          child: Text('没有配置 SSH 的服务器。\n\n请在「服务器」页编辑服务器，开启 SSH 后即可使用终端。',
+          child: T('没有配置 SSH 的服务器。\n\n请在「服务器」页编辑服务器，开启 SSH 后即可使用终端。',
               textAlign: TextAlign.center),
         ),
       );
@@ -93,11 +94,11 @@ class _TerminalPageState extends State<TerminalPage>
     return Scaffold(
       backgroundColor: hasWallpaper ? Colors.transparent : null,
       appBar: AppBar(
-        title: const Text('终端'),
+        title: T('终端'),
         actions: [
           PopupMenuButton<ServerConfig>(
             icon: const Icon(Icons.add),
-            tooltip: '新会话',
+            tooltip: S.t('新会话'),
             onSelected: _openSession,
             itemBuilder: (_) => _sshServers
                 .map((s) => PopupMenuItem(value: s, child: Text(s.name)))
@@ -128,7 +129,7 @@ class _TerminalPageState extends State<TerminalPage>
               ),
       ),
       body: active == null
-          ? const Center(child: Text('选择一台服务器开始会话'))
+          ? const Center(child: T('选择一台服务器开始会话'))
           : Column(
               children: [
                 Expanded(

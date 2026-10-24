@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../../core/l10n/strings.dart';
 
 /// 快速命令预设。
 class QuickCommandPreset {
@@ -22,16 +23,16 @@ class CommandPresetService {
   static const _key = 'mc_quick_commands_v1';
 
   /// 默认预设，首次使用或清空后恢复。
-  static const defaultPresets = <QuickCommandPreset>[
-    QuickCommandPreset(label: '在线列表', command: 'list'),
-    QuickCommandPreset(label: '立即存档', command: 'save-all'),
-    QuickCommandPreset(label: '查看种子', command: 'seed'),
-    QuickCommandPreset(label: '晴天', command: 'weather clear'),
-    QuickCommandPreset(label: '设为白天', command: 'time set day'),
-    QuickCommandPreset(label: '设为黑夜', command: 'time set night'),
-    QuickCommandPreset(label: '和平难度', command: 'difficulty peaceful'),
-    QuickCommandPreset(label: '白名单列表', command: 'whitelist list'),
-    QuickCommandPreset(label: '在线公告', command: 'say 服务器已在线，欢迎游玩！'),
+  static List<QuickCommandPreset> get defaultPresets => <QuickCommandPreset>[
+    QuickCommandPreset(label: S.t('在线列表'), command: 'list'),
+    QuickCommandPreset(label: S.t('立即存档'), command: 'save-all'),
+    QuickCommandPreset(label: S.t('查看种子'), command: 'seed'),
+    QuickCommandPreset(label: S.t('晴天'), command: 'weather clear'),
+    QuickCommandPreset(label: S.t('设为白天'), command: 'time set day'),
+    QuickCommandPreset(label: S.t('设为黑夜'), command: 'time set night'),
+    QuickCommandPreset(label: S.t('和平难度'), command: 'difficulty peaceful'),
+    QuickCommandPreset(label: S.t('白名单列表'), command: 'whitelist list'),
+    QuickCommandPreset(label: S.t('在线公告'), command: 'say 服务器已在线，欢迎游玩！'),
   ];
 
   static Future<List<QuickCommandPreset>> load() async {

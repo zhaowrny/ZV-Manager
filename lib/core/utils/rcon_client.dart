@@ -5,6 +5,7 @@ import 'dart:math';
 import 'dart:typed_data';
 import 'package:flutter/foundation.dart';
 import 'rcon_stream_parser.dart';
+import '../../core/l10n/strings.dart';
 
 /// 去除 Minecraft 消息中的颜色/格式码（§ 后跟一个有效字符）。
 String stripMinecraftCodes(String input) {
@@ -72,7 +73,7 @@ class RconClient {
 
   Future<String?> executeCommand(String command) async {
     if (!_isAuthenticated || _socket == null) {
-      throw Exception('RCON 未连接或未认证');
+      throw Exception(S.t('RCON 未连接或未认证'));
     }
     final response = await _sendPacket(2, command);
     return response?.payload;

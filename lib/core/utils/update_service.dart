@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import '../../core/l10n/strings.dart';
 
 /// 软件更新信息，由 Gitee 发布接口的 tag_name 与 assets 解析而来
 class UpdateInfo {
@@ -91,20 +92,20 @@ class UpdateService {
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
-        title: Text(hasUpdate ? '发现新版本' : '已是最新'),
+        title: Text(hasUpdate ? S.t('发现新版本') : S.t('已是最新')),
         content: Text(hasUpdate
             ? '最新版本: ${info.latestVersion}\n当前版本: $currentVersion'
-            : '当前版本 $currentVersion 已是最新'),
+            : S.f('当前版本 {0} 已是最新', [currentVersion])),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(context), child: const Text('关闭')),
+              onPressed: () => Navigator.pop(context), child: T('关闭')),
           if (hasUpdate)
             FilledButton(
               onPressed: () {
                 Navigator.pop(context);
                 downloadAndInstall(context, info);
               },
-              child: const Text('立即更新'),
+              child: T('立即更新'),
             ),
         ],
       ),
@@ -116,13 +117,13 @@ class UpdateService {
       BuildContext context, UpdateInfo info) async {
     if (_downloading) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('正在下载，请稍候…')),
+        SnackBar(content: T('正在下载，请稍候…')),
       );
       return;
     }
     if (info.downloadUrl.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('未找到可下载的安装包')),
+        const SnackBar(content: T('未找到可下载的安装包')),
       );
       return;
     }
@@ -152,7 +153,7 @@ class UpdateService {
         builder: (_) => PopScope(
           canPop: false,
           child: AlertDialog(
-            title: const Text('正在下载更新'),
+            title: T('正在下载更新'),
             content: ValueListenableBuilder<double?>(
               valueListenable: progress,
               builder: (context, value, _) {
@@ -163,7 +164,7 @@ class UpdateService {
                     CircularProgressIndicator(value: value),
                     const SizedBox(height: 16),
                     Text(
-                      percent == null ? '正在下载安装包…' : '下载中：$percent%',
+                      percent == null ? S.t('正在下载安装包…') : S.f('下载中：{0}%', [percent]),
                       style: Theme.of(context).textTheme.bodyMedium,
                     ),
                   ],
@@ -183,7 +184,7 @@ class UpdateService {
         final message = e.message?.toString() ?? e.code;
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('更新失败：$message')),
+            SnackBar(content: Text(S.f('更新失败：{0}', [message]))),
           );
         }
       } finally {

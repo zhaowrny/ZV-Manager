@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../core/l10n/strings.dart';
 
 /// 服务器卡片的数据状态。
 enum ServerCardState {
@@ -75,7 +76,7 @@ class ServerCard extends StatelessWidget {
       case ServerCardState.offline:
         return '离线';
       case ServerCardState.loading:
-        return '检测中';
+        return S.t('检测中');
     }
   }
 
@@ -192,7 +193,7 @@ class ServerCard extends StatelessWidget {
 
   Widget _buildMenu(BuildContext context, ColorScheme scheme) {
     return PopupMenuButton<String>(
-      tooltip: '更多操作',
+      tooltip: S.t('更多操作'),
       icon: Icon(Icons.more_vert, size: 20, color: scheme.onSurfaceVariant),
       padding: EdgeInsets.zero,
       itemBuilder: (context) => [
@@ -203,7 +204,7 @@ class ServerCard extends StatelessWidget {
             children: [
               Icon(Icons.edit_outlined, size: 19),
               SizedBox(width: 12),
-              Text('编辑'),
+              T('编辑'),
             ],
           ),
         ),
@@ -214,7 +215,7 @@ class ServerCard extends StatelessWidget {
             children: [
               Icon(Icons.delete_outline, size: 19, color: scheme.error),
               const SizedBox(width: 12),
-              Text('删除', style: TextStyle(color: scheme.error)),
+              T('删除', style: TextStyle(color: scheme.error)),
             ],
           ),
         ),
@@ -255,9 +256,9 @@ class ServerCard extends StatelessWidget {
 
     if (state == ServerCardState.loading) {
       return _pillRow(context, [
-        const _Pill(
+        _Pill(
           icon: Icons.autorenew_rounded,
-          label: '正在获取状态',
+          label: S.t('正在获取状态'),
           color: Color(0xFF94A3B8),
         ),
       ]);
@@ -266,16 +267,16 @@ class ServerCard extends StatelessWidget {
     if (!online) {
       return Row(
         children: [
-          const Flexible(
+          Flexible(
             child: _Pill(
               icon: Icons.cloud_off_outlined,
-              label: '无法连接',
+              label: S.t('无法连接'),
               color: Color(0xFFF87171),
             ),
           ),
           const Spacer(),
           Text(
-            '点击重试',
+            S.t('点击重试'),
             style: theme.textTheme.labelSmall?.copyWith(
               color: scheme.onSurfaceVariant,
               fontWeight: FontWeight.w600,
@@ -291,7 +292,7 @@ class ServerCard extends StatelessWidget {
         icon: Icons.people_alt_outlined,
         label: maxPlayers != null
             ? '${playerCount ?? 0}/$maxPlayers'
-            : '${playerCount ?? 0} 人',
+            : S.f('{0} 人', [playerCount ?? 0]),
         color: scheme.primary,
         emphasized: true,
       ),
@@ -313,7 +314,7 @@ class ServerCard extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Text(
-            '进入控制台',
+            S.t('进入控制台'),
             style: Theme.of(context).textTheme.labelSmall?.copyWith(
               color: scheme.primary,
               fontWeight: FontWeight.w600,
