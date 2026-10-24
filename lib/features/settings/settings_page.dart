@@ -13,6 +13,7 @@ import '../../providers/theme_provider.dart';
 import '../../providers/wallpaper_provider.dart';
 import 'help_page.dart';
 import 'download_settings_page.dart';
+import '../../providers/language_provider.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -131,6 +132,32 @@ class _SettingsPageState extends State<SettingsPage> {
     if (!mounted) return;
     // 通过 Provider 落盘并通知，背景层随之交叉淡入
     if (await _applyWallpaper(path, 'image')) _refreshUI();
+  }
+
+  String _languageName(LanguageMode m) => switch (m) {
+        LanguageMode.system => '跟随系统 / System',
+        LanguageMode.zh => '简体中文',
+        LanguageMode.en => 'English',
+      };
+
+  Future<void> _pickLanguage() async {
+    final provider = context.read<LanguageProvider>();
+    final mode = await showDialog<LanguageMode>(
+      context: context,
+      builder: (_) => SimpleDialog(
+        title: const Text('语言 / Language'),
+        children: [
+          for (final m in LanguageMode.values)
+            RadioListTile<LanguageMode>(
+              title: Text(_languageName(m)),
+              value: m,
+              groupValue: provider.mode,
+              onChanged: (v) => Navigator.pop(context, v),
+            ),
+        ],
+      ),
+    );
+    if (mode != null) await provider.setMode(mode);
   }
 
   Future<void> _pickVideo() async {
@@ -278,6 +305,16 @@ class _SettingsPageState extends State<SettingsPage> {
               },
             ),
           ],
+          const Divider(),
+
+          // ---------- 语言 ----------
+          ListTile(
+            leading: const Icon(Icons.language),
+            title: const Text('语言 / Language'),
+            subtitle: Text(_languageName(context.watch<LanguageProvider>().mode)),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => _pickLanguage(),
+          ),
           const Divider(),
 
           // ---------- 下载与镜像 ----------

@@ -6,6 +6,7 @@ import 'core/widgets/background_widget.dart';
 import 'providers/rcon_provider.dart';
 import 'providers/server_provider.dart';
 import 'providers/theme_provider.dart';
+import 'providers/language_provider.dart';
 import 'providers/wallpaper_provider.dart';
 
 void main() {
@@ -37,6 +38,7 @@ class _BootstrapState extends State<Bootstrap> {
   final ThemeProvider _theme = ThemeProvider();
   final RconProvider _rcon = RconProvider();
   final WallpaperProvider _wallpaper = WallpaperProvider();
+  final LanguageProvider _language = LanguageProvider();
 
   bool _ready = false;
 
@@ -51,6 +53,7 @@ class _BootstrapState extends State<Bootstrap> {
       _guard('服务器列表', _server.loadServers()),
       _guard('主题', _theme.loadThemeMode()),
       _guard('壁纸', _wallpaper.loadWallpaper()),
+      _guard('语言', _language.load()),
     ];
 
     try {
@@ -102,6 +105,7 @@ class _BootstrapState extends State<Bootstrap> {
         ChangeNotifierProvider.value(value: _theme),
         ChangeNotifierProvider.value(value: _rcon),
         ChangeNotifierProvider.value(value: _wallpaper),
+        ChangeNotifierProvider.value(value: _language),
       ],
       // 加载期间也照常构建主界面：Provider 已有默认值，
       // 数据到位后自动刷新，用户不会看到空白屏。

@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../../providers/wallpaper_provider.dart';
 import '../../core/utils/rcon_client.dart';
 import '../../providers/rcon_provider.dart';
+import '../../providers/language_provider.dart';
 import '../console/console_page.dart';
 import '../dashboard/dashboard_page.dart';
 import '../dashboard/server_picker_bar.dart';
@@ -24,6 +25,10 @@ class _MainShellState extends State<MainShell> {
 
   @override
   Widget build(BuildContext context) {
+    final en = context.watch<LanguageProvider>().isEnglish;
+    final labels = en
+        ? ['Servers', 'Console', 'Players', 'Mods', 'Terminal', 'Me']
+        : ['服务器', '控制台', '玩家', '模组', '终端', '我的'];
     final pages = [
       const DashboardPage(),
       const _ConsoleTab(),
@@ -37,16 +42,28 @@ class _MainShellState extends State<MainShell> {
       bottomNavigationBar: NavigationBar(
         selectedIndex: _index,
         onDestinationSelected: (i) => setState(() => _index = i),
-        destinations: const [
-          NavigationDestination(icon: Icon(Icons.dns_outlined), selectedIcon: Icon(Icons.dns), label: '服务器'),
-          NavigationDestination(icon: Icon(Icons.terminal_outlined), selectedIcon: Icon(Icons.terminal), label: '控制台'),
-          NavigationDestination(icon: Icon(Icons.group_outlined), selectedIcon: Icon(Icons.group), label: '玩家'),
-          NavigationDestination(icon: Icon(Icons.extension_outlined), selectedIcon: Icon(Icons.extension), label: '模组'),
-          NavigationDestination(icon: Icon(Icons.terminal), selectedIcon: Icon(Icons.terminal), label: '终端'),
-          NavigationDestination(icon: Icon(Icons.settings_outlined), selectedIcon: Icon(Icons.settings), label: '我的'),
+        destinations: [
+          for (var i = 0; i < 6; i++)
+            NavigationDestination(
+              icon: _navIcon(i, false),
+              selectedIcon: _navIcon(i, true),
+              label: labels[i],
+            ),
         ],
       ),
     );
+  }
+
+  Widget _navIcon(int i, bool selected) {
+    final list = [
+      [Icons.dns_outlined, Icons.dns],
+      [Icons.terminal_outlined, Icons.terminal],
+      [Icons.group_outlined, Icons.group],
+      [Icons.extension_outlined, Icons.extension],
+      [Icons.terminal, Icons.terminal],
+      [Icons.settings_outlined, Icons.settings],
+    ];
+    return Icon(list[i][selected ? 1 : 0]);
   }
 }
 
