@@ -80,10 +80,21 @@ class _AboutPageState extends State<AboutPage> {
             onTap: _checkingUpdate ? null : _checkUpdate,
           ),
           const Divider(),
-          const ListTile(
-            leading: Icon(Icons.person_outline),
-            title: T('创造者'),
-            subtitle: T('开发者：Z有3笔，协作者：venti1112'),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+            child: T('创造者', style: Theme.of(context).textTheme.titleSmall),
+          ),
+          _CreatorTile(
+            name: 'Z有3笔',
+            role: S.t('开发者 · Gitee: DriftinBlock'),
+            avatarUrl: 'https://gitee.com/driftinblock.png',
+            homeUrl: 'https://gitee.com/driftinblock',
+          ),
+          _CreatorTile(
+            name: 'Ventiの酒',
+            role: S.t('协作者 · Gitee: venti1112'),
+            avatarUrl: 'https://gitee.com/venti1112.png',
+            homeUrl: 'https://gitee.com/venti1112',
           ),
           const Divider(),
           ListTile(
@@ -103,6 +114,43 @@ class _AboutPageState extends State<AboutPage> {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// 创造者条目：头像 + 名称 + 角色，点击打开 Gitee 主页。
+class _CreatorTile extends StatelessWidget {
+  final String name;
+  final String role;
+  final String avatarUrl;
+  final String homeUrl;
+
+  const _CreatorTile({
+    required this.name,
+    required this.role,
+    required this.avatarUrl,
+    required this.homeUrl,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return ListTile(
+      leading: ClipOval(
+        child: SizedBox(
+          width: 44,
+          height: 44,
+          child: Image.network(
+            avatarUrl,
+            fit: BoxFit.cover,
+            errorBuilder: (_, __, ___) =>
+                const ColoredBox(color: Color(0xFFDDDDDD), child: Icon(Icons.person)),
+          ),
+        ),
+      ),
+      title: Text(name),
+      subtitle: Text(role, overflow: TextOverflow.ellipsis),
+      trailing: const Icon(Icons.open_in_new, size: 18),
+      onTap: () => UpdateService.openUrl(homeUrl),
     );
   }
 }

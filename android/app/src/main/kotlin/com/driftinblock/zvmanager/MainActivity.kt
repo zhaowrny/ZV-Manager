@@ -44,6 +44,21 @@ class MainActivity : FlutterActivity() {
                         downloadAndInstall(url, filename ?: "latest.apk", result)
                     }
                 }
+                "openUrl" -> {
+                    val url = call.argument<String>(ARG_URL)
+                    if (url.isNullOrBlank()) {
+                        result.error("BAD_ARGS", "链接为空", null)
+                    } else {
+                        try {
+                            startActivity(
+                                Intent(Intent.ACTION_VIEW, android.net.Uri.parse(url))
+                            )
+                            result.success(true)
+                        } catch (e: ActivityNotFoundException) {
+                            result.error("NO_BROWSER", "无法打开链接", null)
+                        }
+                    }
+                }
                 else -> result.notImplemented()
             }
         }

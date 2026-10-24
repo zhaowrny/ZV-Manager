@@ -414,6 +414,8 @@ class S {
     '我知道了': 'Got it',
     '创造者': 'Creators',
     'ZV Manager 是一款 Minecraft 服务器远程管理工具，本软件与 Mojang、微软无任何隶属关系。': 'ZV Manager is a remote management tool for Minecraft servers. Not affiliated with Mojang or Microsoft.',
+    '开发者 · Gitee: DriftinBlock': 'Developer · Gitee: DriftinBlock',
+    '协作者 · Gitee: venti1112': 'Collaborator · Gitee: venti1112',
   };
 
   static String t(String zh) => en ? (_en[zh] ?? zh) : zh;

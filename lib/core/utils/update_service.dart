@@ -35,6 +35,13 @@ class UpdateService {
   /// 是否正在下载，用于防止重复触发并发下载到同一文件。
   static bool _downloading = false;
 
+  /// 调用系统浏览器打开外部链接。
+  static Future<void> openUrl(String url) async {
+    try {
+      await _channel.invokeMethod('openUrl', {'url': url});
+    } catch (_) {}
+  }
+
   /// 从 Gitee 拉取最新发布信息；接口异常返回 null（调用方决定是否静默处理）。
   static Future<UpdateInfo?> fetchInfo({String userAgent = ''}) async {
     final client = HttpClient();
