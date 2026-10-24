@@ -84,10 +84,10 @@ class _AboutPageState extends State<AboutPage> {
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
             child: T('创造者', style: Theme.of(context).textTheme.titleSmall),
           ),
-          _CreatorTile(
+          const _CreatorTile(
             name: 'Z有3笔',
-            role: S.t('开发者 · Gitee: DriftinBlock'),
-            avatarUrl: 'https://gitee.com/driftinblock.png',
+            role: '开发者 · Gitee: DriftinBlock',
+            assetAvatar: 'assets/creator_zavatar.png',
             homeUrl: 'https://gitee.com/driftinblock',
           ),
           _CreatorTile(
@@ -122,14 +122,18 @@ class _AboutPageState extends State<AboutPage> {
 class _CreatorTile extends StatelessWidget {
   final String name;
   final String role;
-  final String avatarUrl;
   final String homeUrl;
+
+  /// 头像二选一：本地资产优先，否则用网络头像。
+  final String? assetAvatar;
+  final String? avatarUrl;
 
   const _CreatorTile({
     required this.name,
     required this.role,
-    required this.avatarUrl,
     required this.homeUrl,
+    this.assetAvatar,
+    this.avatarUrl,
   });
 
   @override
@@ -139,12 +143,14 @@ class _CreatorTile extends StatelessWidget {
         child: SizedBox(
           width: 44,
           height: 44,
-          child: Image.network(
-            avatarUrl,
-            fit: BoxFit.cover,
-            errorBuilder: (_, __, ___) =>
-                const ColoredBox(color: Color(0xFFDDDDDD), child: Icon(Icons.person)),
-          ),
+          child: assetAvatar != null
+              ? Image.asset(assetAvatar!, fit: BoxFit.cover)
+              : Image.network(
+                  avatarUrl!,
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) => const ColoredBox(
+                      color: Color(0xFFDDDDDD), child: Icon(Icons.person)),
+                ),
         ),
       ),
       title: Text(name),
