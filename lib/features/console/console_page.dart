@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../core/utils/command_preset_service.dart';
 import '../../core/utils/rcon_client.dart';
-import '../player_management/player_list_page.dart';
 import '../../core/l10n/strings.dart';
 
 class ConsolePage extends StatefulWidget {
@@ -150,16 +149,7 @@ class _ConsolePageState extends State<ConsolePage> {
     return Scaffold(
       appBar: AppBar(
         title: T('服务器控制台'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.people_outline),
-            tooltip: S.t('玩家管理'),
-            onPressed: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => PlayerListPage(rconClient: widget.rconClient)),
-            ),
-          ),
-        ],
+        actions: const [],
       ),
       body: Column(
         children: [
