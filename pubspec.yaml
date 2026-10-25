@@ -6,7 +6,8 @@ environment:
   sdk: ">=3.0.0 <4.0.0"
 
 dependencies:
-  dartssh2: 2.8.2 # 锁定版本：2.11.0 与新版 Dart SDK 类型提升不兼容，编译失败
+  dartssh2:
+    path: third_party/dartssh2
   xterm: ^4.0.0
   dio: ^5.4.0
   archive: ^3.6.0
