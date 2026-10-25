@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/wallpaper_provider.dart';
 import '../../app.dart' show navigatorKey;
+import '../../core/theme/app_theme.dart';
 import '../../providers/rcon_provider.dart';
 import '../../providers/server_provider.dart';
 import '../server_list/server_form_dialog.dart';
@@ -191,7 +192,7 @@ class _DashboardPageState extends State<DashboardPage> {
               ),
             )
           : ListView(
-              padding: const EdgeInsets.all(12),
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
               children: [
                 // 服务器选择器
                 Card(
@@ -218,9 +219,9 @@ class _DashboardPageState extends State<DashboardPage> {
                   crossAxisCount: 2,
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
-                  childAspectRatio: 1.8,
-                  mainAxisSpacing: 8,
-                  crossAxisSpacing: 8,
+                  childAspectRatio: 1.9,
+                  mainAxisSpacing: 10,
+                  crossAxisSpacing: 10,
                   children: [
                     _statusCard(
                       icon: status?.online == true ? Icons.circle : Icons.circle_outlined,
@@ -250,14 +251,30 @@ class _DashboardPageState extends State<DashboardPage> {
                 ),
                 const SizedBox(height: 8),
                 // 服务器卡片列表（点击选中）
-                T('服务器', style: Theme.of(context).textTheme.titleMedium),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(4, 16, 4, 8),
+                  child: T('服务器', style: Theme.of(context).textTheme.titleMedium),
+                ),
                 ...servers.map((s) {
                   final st = _status[s.id];
                   final isSel = selected?.id == s.id;
                   return Card(
-                    margin: const EdgeInsets.symmetric(vertical: 4),
+                    margin: const EdgeInsets.only(bottom: 8),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(AppTheme.radiusL),
+                      side: isSel
+                          ? BorderSide(color: Theme.of(context).colorScheme.primary, width: 1.6)
+                          : BorderSide(
+                              color: Theme.of(context).brightness == Brightness.dark
+                                  ? Colors.white10
+                                  : Colors.black.withOpacity(0.06)),
+                    ),
+                    color: isSel
+                        ? Theme.of(context).colorScheme.primary.withOpacity(0.06)
+                        : null,
                     child: ListTile(
                       selected: isSel,
+                      selectedTileColor: Colors.transparent,
                       leading: Icon(
                         st?.online == true ? Icons.circle : Icons.circle_outlined,
                         color: st?.online == true ? Colors.green : Colors.red,
@@ -290,41 +307,42 @@ class _DashboardPageState extends State<DashboardPage> {
                 }),
                 const SizedBox(height: 8),
                 // 快捷入口
-                Card(
-                  child: Column(
-                    children: [
-                      ListTile(
-                        leading: const Icon(Icons.download_outlined),
-                        title: T('下载中心'),
-                        subtitle: T('Modrinth 搜索 · 镜像加速'),
-                        trailing: const Icon(Icons.chevron_right),
-                        onTap: () => Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (_) => const DownloadPage()),
-                        ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(4, 16, 4, 8),
+                  child: T('快捷入口', style: Theme.of(context).textTheme.titleMedium),
+                ),
+                Row(
+                  children: [
+                    _quickEntry(
+                      icon: Icons.download_outlined,
+                      color: Colors.blue,
+                      label: S.t('下载中心'),
+                      onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const DownloadPage()),
                       ),
-                      ListTile(
-                        leading: const Icon(Icons.terminal),
-                        title: T('远程终端'),
-                        subtitle: const Text('SSH Shell'),
-                        trailing: const Icon(Icons.chevron_right),
-                        onTap: () => Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (_) => const TerminalPage()),
-                        ),
+                    ),
+                    const SizedBox(width: 10),
+                    _quickEntry(
+                      icon: Icons.terminal,
+                      color: Colors.deepOrange,
+                      label: S.t('远程终端'),
+                      onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const TerminalPage()),
                       ),
-                      ListTile(
-                        leading: const Icon(Icons.extension_outlined),
-                        title: T('模组管理'),
-                        subtitle: T('上传 / 删除 / 查看依赖'),
-                        trailing: const Icon(Icons.chevron_right),
-                        onTap: () => Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (_) => const ModListPage()),
-                        ),
+                    ),
+                    const SizedBox(width: 10),
+                    _quickEntry(
+                      icon: Icons.extension_outlined,
+                      color: Colors.purple,
+                      label: S.t('模组管理'),
+                      onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const ModListPage()),
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -337,21 +355,83 @@ class _DashboardPageState extends State<DashboardPage> {
     required String label,
     required String sub,
   }) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(12),
+        padding: const EdgeInsets.all(14),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(children: [
-              Icon(icon, color: color, size: 18),
-              const SizedBox(width: 6),
-              Text(label, style: Theme.of(context).textTheme.bodyMedium),
-            ]),
-            const SizedBox(height: 6),
-            Text(sub, style: Theme.of(context).textTheme.headlineSmall),
+            Container(
+              padding: const EdgeInsets.all(7),
+              decoration: BoxDecoration(
+                color: color.withOpacity(0.14),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(icon, color: color, size: 16),
+            ),
+            const SizedBox(height: 10),
+            Text(label, style: Theme.of(context).textTheme.bodySmall),
+            const SizedBox(height: 2),
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(
+                sub,
+                maxLines: 1,
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.w700,
+                      color: dark ? Colors.white : const Color(0xFF222222),
+                    ),
+              ),
+            ),
           ],
+        ),
+      ),
+    );
+  }
+
+  /// 快捷入口：彩色图标 + 标题的方块按钮。
+  Widget _quickEntry({
+    required IconData icon,
+    required Color color,
+    required String label,
+    required VoidCallback onTap,
+  }) {
+    return Expanded(
+      child: Material(
+        color: Theme.of(context).brightness == Brightness.dark
+            ? const Color(0xFF1B1E24)
+            : Colors.white,
+        borderRadius: BorderRadius.circular(AppTheme.radiusL),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(AppTheme.radiusL),
+          child: Container(
+            padding: const EdgeInsets.symmetric(vertical: 14),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(AppTheme.radiusL),
+              border: Border.all(
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? Colors.white10
+                    : Colors.black.withOpacity(0.06),
+              ),
+            ),
+            child: Column(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: color.withOpacity(0.14),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(icon, color: color, size: 22),
+                ),
+                const SizedBox(height: 8),
+                Text(label, style: Theme.of(context).textTheme.bodySmall),
+              ],
+            ),
+          ),
         ),
       ),
     );
