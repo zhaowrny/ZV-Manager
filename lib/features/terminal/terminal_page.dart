@@ -7,6 +7,7 @@ import '../../core/services/ssh_shell_service.dart';
 
 import '../../providers/server_provider.dart';
 import '../../core/l10n/strings.dart';
+import '../../core/widgets/empty_state_page.dart';
 
 
 /// SSH 终端页：xterm 终端 + 快捷键栏 + 多服务器会话标签（M3）。
@@ -81,12 +82,10 @@ class _TerminalPageState extends State<TerminalPage>
   Widget build(BuildContext context) {
     super.build(context);
     if (_sshServers.isEmpty) {
-      return const Center(
-        child: Padding(
-          padding: EdgeInsets.all(24),
-          child: T('没有配置 SSH 的服务器。\n\n请在「服务器」页编辑服务器，开启 SSH 后即可使用终端。',
-              textAlign: TextAlign.center),
-        ),
+      return const EmptyStatePage(
+        title: '终端',
+        icon: Icons.terminal_outlined,
+        message: '没有配置 SSH 的服务器。\n\n请在「服务器」页编辑服务器，开启 SSH 后即可使用终端。',
       );
     }
     final hasWallpaper = context.watch<WallpaperProvider>().hasWallpaper;

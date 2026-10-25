@@ -8,6 +8,7 @@ import 'mod_provider.dart';
 import 'mod_detail_page.dart';
 import 'dependency_tree_page.dart';
 import '../../core/l10n/strings.dart';
+import '../../core/widgets/empty_state_page.dart';
 
 /// 模组/插件管理页：列出服务器 mods / plugins 目录中的 jar 文件，
 /// 支持上传 / 删除 / 重命名 / 查看详情（M1）。
@@ -54,10 +55,18 @@ class _ModListPageState extends State<ModListPage>
     super.build(context);
     final server = context.watch<SelectedServerHolder>().server;
     if (server == null) {
-      return const Center(child: T('请先在「服务器」页选择一台服务器'));
+      return EmptyStatePage(
+        title: '模组管理',
+        icon: Icons.extension_outlined,
+        message: '请先在「服务器」页选择一台服务器',
+      );
     }
     if (!server.hasSsh) {
-      return _NoSshHint(serverName: server.name);
+      return EmptyStatePage(
+        title: '模组管理',
+        icon: Icons.extension_outlined,
+        message: '「${server.name}」未开启 SSH，请在服务器设置中开启后使用模组管理',
+      );
     }
     final hasWallpaper = context.watch<WallpaperProvider>().hasWallpaper;
     final p = _provider;
@@ -226,32 +235,5 @@ class _ModListPageState extends State<ModListPage>
     if (bytes < 1024) return '$bytes B';
     if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(1)} KB';
     return '${(bytes / 1024 / 1024).toStringAsFixed(1)} MB';
-  }
-}
-
-class _NoSshHint extends StatelessWidget {
-  final String serverName;
-  const _NoSshHint({required this.serverName});
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.no_encryption_outlined, size: 56),
-            const SizedBox(height: 12),
-            Text(S.f('{0} 未配置 SSH', [serverName])),
-            const SizedBox(height: 8),
-            const Text(
-              '模组管理需要 SSH 连接。请在「服务器」页编辑该服务器，\n开启 SSH 并填写用户名和密码。',
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
-      ),
-    );
   }
 }
