@@ -261,13 +261,11 @@ class _DashboardPageState extends State<DashboardPage> {
                   return Card(
                     margin: const EdgeInsets.only(bottom: 8),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(AppTheme.radiusL),
+                      borderRadius: BorderRadius.circular(AppTheme.radiusM),
                       side: isSel
                           ? BorderSide(color: Theme.of(context).colorScheme.primary, width: 1.6)
                           : BorderSide(
-                              color: Theme.of(context).brightness == Brightness.dark
-                                  ? Colors.white10
-                                  : Colors.black.withOpacity(0.06)),
+                              color: Theme.of(context).colorScheme.outlineVariant),
                     ),
                     color: isSel
                         ? Theme.of(context).colorScheme.primary.withOpacity(0.06)
@@ -400,22 +398,16 @@ class _DashboardPageState extends State<DashboardPage> {
   }) {
     return Expanded(
       child: Material(
-        color: Theme.of(context).brightness == Brightness.dark
-            ? const Color(0xFF1B1E24)
-            : Colors.white,
-        borderRadius: BorderRadius.circular(AppTheme.radiusL),
+        color: Theme.of(context).colorScheme.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(AppTheme.radiusM),
         child: InkWell(
           onTap: onTap,
-          borderRadius: BorderRadius.circular(AppTheme.radiusL),
+          borderRadius: BorderRadius.circular(AppTheme.radiusM),
           child: Container(
             padding: const EdgeInsets.symmetric(vertical: 14),
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(AppTheme.radiusL),
-              border: Border.all(
-                color: Theme.of(context).brightness == Brightness.dark
-                    ? Colors.white10
-                    : Colors.black.withOpacity(0.06),
-              ),
+              borderRadius: BorderRadius.circular(AppTheme.radiusM),
+              border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
             ),
             child: Column(
               children: [
@@ -423,7 +415,7 @@ class _DashboardPageState extends State<DashboardPage> {
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
                     color: color.withOpacity(0.14),
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(AppTheme.radiusS),
                   ),
                   child: Icon(icon, color: color, size: 22),
                 ),
