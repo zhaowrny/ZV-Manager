@@ -41,11 +41,14 @@ class JarMetadata {
   static JarMetadata parseArchive(Archive archive) => _fromArchive(archive);
 
   static JarMetadata _fromArchive(Archive archive) {
+    // 按加载器优先级依次尝试：先认 mod 描述文件，再退回插件描述文件，
+    // 最后尝试 Forge 的 toml。任何一步成功即返回，不再往下找。
     // 1) Fabric / Quilt：fabric.mod.json
     for (final entry in ['fabric.mod.json', 'quilt.mod.json']) {
       final f = archive.findFile(entry);
       if (f != null) {
         final json = jsonDecode(utf8.decode(f.content as List<int>));
+        // Quilt 把真实信息放在 quilt_loader 下，Fabric 则直接在根上
         final loader = json['quilt_loader'];
         final root = loader ?? json;
         final meta = root['metadata'] ?? {};
@@ -78,18 +81,20 @@ class JarMetadata {
       }
     }
 
-    // 3) Forge：META-INF/mods.toml / mcmod.info
+      // 3) Forge：META-INF/mods.toml / mcmod.info
     for (final entry in ['META-INF/mods.toml', 'mcmod.info']) {
       final f = archive.findFile(entry);
       if (f != null) {
         final text = utf8.decode(f.content as List<int>);
         if (entry.endsWith('.toml')) {
+          // toml 无现成解析库，用正则抓关键字段即可满足展示需求
           final name = RegExp(r'''^\s*displayName\s*=\s*["']([^"']+)''', multiLine: true).firstMatch(text)?.group(1);
           final ver = RegExp(r'''^\s*version\s*=\s*["']([^"']+)''', multiLine: true).firstMatch(text)?.group(1);
           final deps = RegExp(r'''^\s*modId\s*=\s*["']([^"']+)''', multiLine: true)
               .allMatches(text)
               .map((m) => m.group(1)!)
               .toList();
+          // 第一个 modId 通常是模组自己，依赖从第二个开始
           return JarMetadata(name: name, version: ver, depends: deps.skip(1).toList(), source: entry);
         }
         final json = jsonDecode(text);

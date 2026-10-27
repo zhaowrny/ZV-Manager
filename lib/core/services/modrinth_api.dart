@@ -9,6 +9,7 @@ class ModrinthApi {
 
   Dio get _dio {
     final d = Dio(BaseOptions(
+      // 镜像线路偶尔抖动，给足超时时间，避免用户看到莫名失败
       connectTimeout: const Duration(seconds: 15),
       receiveTimeout: const Duration(seconds: 30),
     ));
@@ -16,6 +17,7 @@ class ModrinthApi {
       onRequest: (options, handler) {
         // 镜像改写：api.modrinth.com / cdn.modrinth.com → 镜像节点
         options.path = mirror.rewrite(options.uri.toString());
+        // Modrinth 要求标明客户端身份，否则可能被限流
         options.headers['User-Agent'] = 'ZVManager/2.0 (gitee.com/driftinblock/zvmanager)';
         handler.next(options);
       },
@@ -24,6 +26,9 @@ class ModrinthApi {
   }
 
   /// 搜索项目。facets 例：[["versions:1.20.1"], ["categories:fabric"], ["project_type:mod"]]
+  ///
+  /// Modrinth 的 facets 是「AND 组合、组内 OR」的结构，
+  /// 因此项目类型/版本/加载器各占一组即可实现"三者同时满足"的筛选。
   Future<List<ModrinthSearchResult>> search({
     required String query,
     String projectType = 'mod',
@@ -60,13 +65,19 @@ class ModrinthApi {
   }
 }
 
+/// 在项目搜索中会出现多页结果，这里仅取 limit 条（分页由上层滚动加载扩展）。
 class ModrinthSearchResult {
+  /// 项目短名，可用于拼 URL（如 /mod/sodium）
   final String slug;
   final String title;
   final String description;
   final List<String> categories;
   final int downloads;
+
+  /// 项目图标，部分项目无图标返回 null
   final String? iconUrl;
+
+  /// 项目唯一 id，查版本时用
   final String projectId;
 
   ModrinthSearchResult({
@@ -90,14 +101,26 @@ class ModrinthSearchResult {
       );
 }
 
+/// Modrinth 的一个发布版本。
 class ModrinthVersion {
   final String id;
+
+  /// 版本号（如 0.5.11）
   final String versionNumber;
+
+  /// 版本展示名（通常是版本号 + 说明）
   final String name;
+
+  /// 兼容的 MC 版本列表（如 ['1.20.1', '1.20.2']）
   final List<String> gameVersions;
+
+  /// 兼容的加载器（fabric / forge / neoforge / quilt）
   final List<String> loaders;
+
   final DateTime datePublished;
   final String? changelog;
+
+  /// 文件列表，每项含 url / filename / primary 等字段
   final List<Map<String, dynamic>> files;
 
   ModrinthVersion({

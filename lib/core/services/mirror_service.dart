@@ -41,9 +41,13 @@ class MirrorService extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// 把 Modrinth 官方域名改写为镜像域名。
-  /// MCIM 镜像规则：api.modrinth.com → modrinth-api.mcimirror.top
-  ///             cdn.modrinth.com → modrinth-cdn.mcimirror.top
+/// 把 Modrinth 官方域名改写为镜像域名。
+  ///
+  /// 镜像规则：
+  /// - MCIM：api.modrinth.com → modrinth-api.mcimirror.top
+  ///         cdn.modrinth.com → modrinth-cdn.mcimirror.top
+  /// - official：原样返回
+  /// - custom：以自定义 base 替换 scheme/host，保留路径与查询串
   String rewrite(String url) {
     final uri = Uri.parse(url);
     if (_current == 'official') return url;
@@ -68,6 +72,9 @@ class MirrorService extends ChangeNotifier {
   }
 
   /// 测速：对镜像的 api 域名发 HEAD 请求，返回毫秒数；失败返回 -1。
+  ///
+  /// 用 sodium（高下载量项目）作为探针，保证端点有效且有缓存命中，
+  /// 测得的是"网络往返 + 响应"的真实可用性。
   Future<int> speedTest(String mirrorId) async {
     final String probe = switch (mirrorId) {
       'official' => 'https://api.modrinth.com/v2/project/sodium/version?limit=1',

@@ -9,15 +9,25 @@ import '../../core/l10n/strings.dart';
 enum DownloadStatus { queued, running, paused, completed, failed, canceled }
 
 /// 单个下载任务。
+///
+/// 进度语义：进度以 `.part` 临时文件为基础，
+/// [receivedBytes] 始终表示"该文件已落盘的字节数"（含续传前已存在的部分），
+/// [totalBytes] 表示文件完整大小（未知时为 0）。
 class DownloadTask {
   final String id;
-  final String url;          // 直链（已镜像改写）
+
+  /// 直链（已按当前镜像线路改写）
+  final String url;
   final String fileName;
   final String savePath;
-  final String? sftpRemoteDir; // 完成后自动上传到服务器的目录（需 SSH）
+
+  /// 完成后自动上传到服务器的目录（需 SSH；为空则不上传）
+  final String? sftpRemoteDir;
   int totalBytes;
   int receivedBytes = 0;
-  double speed = 0;          // bytes/s
+
+  /// 实时速度，单位 bytes/s，由 500ms 采样窗口计算
+  double speed = 0;
   DownloadStatus status = DownloadStatus.queued;
   String? error;
 
@@ -175,7 +185,7 @@ class DownloadManager extends ChangeNotifier {
         var lastTick = DateTime.now();
         var lastBytes = existing;
 
-        final resp = await _dio.download(
+        await _dio.download(
           task.url,
           '${task.savePath}.part',
           cancelToken: token,
@@ -188,13 +198,20 @@ class DownloadManager extends ChangeNotifier {
           ),
           onReceiveProgress: (count, total) {
             task.receivedBytes = existing + count;
-            // 服务端可能不支持 Range：206 才是续传，200 时 total 为完整大小
-            task.totalBytes = existing > 0 && total == task.receivedBytes
-                ? total
-                : (total > 0 ? total + (total == count ? 0 : 0) : total);
-            if (existing > 0 && total > 0 && task.totalBytes <= existing) {
-              task.totalBytes = existing + total;
+            // 断点续传时 dio 的 total 只统计「本次请求」的剩余字节，
+            // 因此需加上已有的 existing；不支持 Range 时服务端返回 200，
+            // 此时 total 已是完整文件大小，直接用即可。
+            if (total > 0) {
+              task.totalBytes = existing > 0 && count <= total
+                  ? existing + total
+                  : total;
             }
+            // 兜底：若推算出的总量反而小于已收字节，说明服务端行为异常，
+            // 直接把已收量当作总量，避免进度条超过 100%。
+            if (task.totalBytes > 0 && task.totalBytes < task.receivedBytes) {
+              task.totalBytes = task.receivedBytes;
+            }
+            // 节流：每 500ms 采样一次速度并刷新 UI，避免高频 notify 卡顿
             final now = DateTime.now();
             final dt = now.difference(lastTick).inMilliseconds;
             if (dt >= 500) {
@@ -205,10 +222,7 @@ class DownloadManager extends ChangeNotifier {
             }
           },
         );
-        // 200 响应（非续传）时重置已收字节
-        if (resp.statusCode == 200 && existing > 0 && task.receivedBytes < existing) {
-          task.receivedBytes = task.receivedBytes;
-        }
+        // 全部下载完成后把 .part 改名为正式文件（原子操作，避免半成品被当成完整文件）
         task.totalBytes = task.receivedBytes;
         await partial.rename(task.savePath);
         _updateStatus(task.id, DownloadStatus.completed);

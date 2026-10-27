@@ -14,6 +14,9 @@ class SshShellService {
   bool get isConnected => _client != null && !_client!.isClosed;
 
   /// 建立 PTY 会话。输出通过 [onOutput] 回调（UTF-8 解码后）。
+  ///
+  /// - [keepAliveInterval]：15 秒发一次 keepalive，防止移动网络 NAT 超时踢掉空闲连接；
+  /// - PTY 类型固定 xterm-256color，让服务端程序输出彩色与全屏界面（如 htop）。
   Future<void> connect(
     ServerConfig server, {
     required void Function(String) onOutput,
@@ -40,6 +43,7 @@ class SshShellService {
     );
     _session = shell;
 
+    // stdout 正常输出；连接结束（onDone）时触发自动重连
     shell.stdout.listen(
       (data) => onOutput(utf8.decode(data, allowMalformed: true)),
       onDone: () {
@@ -48,9 +52,11 @@ class SshShellService {
       },
       onError: (_) => onDisconnected?.call(),
     );
+    // stderr 与 stdout 合并到同一个终端缓冲区，符合真实终端表现
     shell.stderr.listen((data) => onOutput(utf8.decode(data, allowMalformed: true)));
   }
 
+  /// 自动重连：最多 3 次，间隔 2s → 4s → 6s 递增。
   Future<void> _tryReconnect(
     ServerConfig server, {
     required void Function(String) onOutput,
@@ -67,11 +73,11 @@ class SshShellService {
     }
   }
 
-  /// 写入用户输入。
+  /// 写入用户输入（按键、粘贴内容）。
   void write(String input) =>
       _session?.write(Uint8List.fromList(utf8.encode(input)));
 
-  /// 终端窗口尺寸变化。
+  /// 终端窗口尺寸变化（软键盘弹出、横竖屏切换时调用）。
   void resize(int cols, int rows) => _session?.resizeTerminal(cols, rows);
 
   Future<void> disconnect() async {

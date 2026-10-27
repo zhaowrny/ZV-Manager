@@ -4,6 +4,10 @@ import '../../core/utils/command_preset_service.dart';
 import '../../core/utils/rcon_client.dart';
 import '../../core/l10n/strings.dart';
 
+/// 控制台页：命令输入 + 输出回显 + 命令历史 + Tab 补全 + 快捷指令。
+///
+/// 输出只保存在内存里（最多 [_maxLines] 行），退出页面即清空——
+/// 真正的持久化日志请看「设置 → 服务器日志」（读服务器 logs 目录）。
 class ConsolePage extends StatefulWidget {
   final RconClient rconClient;
   const ConsolePage({super.key, required this.rconClient});
@@ -15,11 +19,19 @@ class ConsolePage extends StatefulWidget {
 class _ConsolePageState extends State<ConsolePage> {
   final _controller = TextEditingController();
   final _scrollController = ScrollController();
+
+  /// 已执行过的命令，供上下键翻阅
   final _history = <String>[];
+
+  /// 当前浏览到的历史位置；等于 length 表示"正在输入新命令"
   int _historyIndex = -1;
   final _outputLines = <_LogLine>[];
+
+  /// 输出行数上限，防止长时间运行后内存无限增长
+  static const _maxLines = 500;
   List<QuickCommandPreset> _presets = [];
 
+  /// Tab 补全候选：常用服务端命令
   static const _commands = [
     'help', 'list', 'stop', 'say', 'op', 'deop', 'kick', 'ban', 'pardon',
     'gamemode', 'tp', 'give', 'time set', 'weather', 'difficulty',
@@ -28,14 +40,15 @@ class _ConsolePageState extends State<ConsolePage> {
   @override
   void initState() {
     super.initState();
+    // 连接状态变化直接写入输出区，用户能看到断线与恢复的时间点
     widget.rconClient.onDisconnected = () {
       if (mounted) {
-        setState(() => _outputLines.add(_LogLine(text: S.t('[警告] 连接断开，正在重连...'), isError: true)));
+        setState(() => _append(_LogLine(text: S.t('[警告] 连接断开，正在重连...'), isError: true)));
       }
     };
     widget.rconClient.onReconnected = () {
       if (mounted) {
-        setState(() => _outputLines.add(_LogLine(text: S.t('[信息] 重连成功'), isCommand: false)));
+        setState(() => _append(_LogLine(text: S.t('[信息] 重连成功'), isCommand: false)));
       }
     };
     _loadPresets();
@@ -51,6 +64,14 @@ class _ConsolePageState extends State<ConsolePage> {
     _controller.dispose();
     _scrollController.dispose();
     super.dispose();
+  }
+
+  /// 追加一行输出，超过上限时丢弃最早的行。
+  void _append(_LogLine line) {
+    _outputLines.add(line);
+    if (_outputLines.length > _maxLines) {
+      _outputLines.removeRange(0, _outputLines.length - _maxLines);
+    }
   }
 
   void _scrollToBottom() {
@@ -73,31 +94,33 @@ class _ConsolePageState extends State<ConsolePage> {
   }
 
   Future<void> _sendCommand(String cmd) async {
+    // 去重：连续执行同一条命令时不重复记入历史
     if (_history.isEmpty || _history.last != cmd) _history.add(cmd);
     _historyIndex = _history.length;
 
     setState(() {
-      _outputLines.add(_LogLine(text: '> $cmd', isCommand: true));
+      _append(_LogLine(text: '> $cmd', isCommand: true));
     });
     _scrollToBottom();
 
     try {
       final response = await widget.rconClient.executeCommand(cmd);
       setState(() {
-        _outputLines.add(_LogLine(
+        _append(_LogLine(
           text: stripMinecraftCodes(response ?? S.t('(无响应)')),
           isCommand: false,
         ));
       });
     } catch (e) {
       setState(() {
-        _outputLines.add(_LogLine(text: S.f('[错误] {0}', [e.toString()]), isCommand: false, isError: true));
+        _append(_LogLine(text: S.f('[错误] {0}', [e.toString()]), isCommand: false, isError: true));
       });
     }
     _scrollToBottom();
   }
 
   void _onTabPressed() {
+    // 简单的前缀补全：只有唯一匹配时直接补全，多个匹配则列出候选
     final input = _controller.text.trim();
     if (input.isEmpty) return;
 
@@ -107,12 +130,14 @@ class _ConsolePageState extends State<ConsolePage> {
       _controller.selection = TextSelection.fromPosition(TextPosition(offset: matches.first.length));
     } else if (matches.length > 1) {
       setState(() {
-        _outputLines.add(_LogLine(text: S.f('建议：{0}', [matches.join(", ")]), isCommand: false));
+        _append(_LogLine(text: S.f('建议：{0}', [matches.join(", ")]), isCommand: false));
       });
       _scrollToBottom();
     }
   }
 
+  /// 上下键翻阅历史：up 往更早的命令走，down 往更新的走；
+  /// 走到最新位置之后即为空白（相当于"取消翻阅"）。
   void _onHistoryNavigate(bool up) {
     if (_history.isEmpty) return;
     setState(() {
