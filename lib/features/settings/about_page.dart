@@ -21,11 +21,14 @@ class _AboutPageState extends State<AboutPage> {
     _loadVersion();
   }
 
+  /// 从 APK 信息读取当前版本号（对应 pubspec.yaml 的 version）。
   Future<void> _loadVersion() async {
     final info = await PackageInfo.fromPlatform();
     if (mounted) setState(() => _currentVersion = info.version);
   }
 
+  /// 检查更新：拉取 Gitee 最新 release 并与当前版本比对。
+  /// 网络异常和"拿不到发布信息"给出不同提示，便于用户区分是网络问题还是仓库问题。
   Future<void> _checkUpdate() async {
     setState(() => _checkingUpdate = true);
     try {

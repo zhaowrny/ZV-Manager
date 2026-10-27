@@ -16,8 +16,11 @@ class DependencyTreePage extends StatefulWidget {
 }
 
 class _DependencyTreePageState extends State<DependencyTreePage> {
+  /// null 表示尚未完成首次加载（显示 loading）
   List<IndexedMod>? _mods;
   bool _syncing = false;
+
+  /// 同步结果提示文字（成功统计 / 失败原因）
   String? _syncInfo;
 
   @override
@@ -32,6 +35,8 @@ class _DependencyTreePageState extends State<DependencyTreePage> {
     setState(() => _mods = mods);
   }
 
+  /// 手动触发一次增量同步：只解析新增或变更的 jar，未变化的跳过，
+  /// 因此重复点击的代价很低。
   Future<void> _sync() async {
     setState(() {
       _syncing = true;

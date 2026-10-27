@@ -45,6 +45,8 @@ class _ServerLogPageState extends State<ServerLogPage> {
     super.dispose();
   }
 
+  /// 切换服务器时清空旧文件列表，并把路径重置为新服务器的默认值，
+  /// 避免把 A 服务器的日志路径带到 B 服务器上。
   void _onHolderChanged() {
     if (!mounted) return;
     final s = context.read<SelectedServerHolder>().server;
@@ -58,6 +60,8 @@ class _ServerLogPageState extends State<ServerLogPage> {
     }
   }
 
+  /// 推导默认日志目录：root 用户为 /root/logs，
+  /// 其他用户为 /home/<user>/logs（与原版服务端默认工作目录一致）。
   String _defaultLogsDir(ServerConfig? s) {
     if (s == null) return '';
     final user = s.sshUser;
@@ -69,6 +73,8 @@ class _ServerLogPageState extends State<ServerLogPage> {
       ? _defaultLogsDir(_server)
       : _pathCtrl.text.trim();
 
+  /// 通过 SFTP 拉取日志目录列表，按修改时间倒序（最新的在最上面）。
+  /// 无 SSH 配置时直接给出提示，不发请求。
   Future<void> _refresh() async {
     final s = _server;
     if (s == null || !s.hasSsh) {
@@ -103,6 +109,8 @@ class _ServerLogPageState extends State<ServerLogPage> {
     }
   }
 
+  /// 开关自动刷新：开启后每 5 秒重读一次文件。
+  /// 轮询而非长连接，是因为 SFTP 没有 tail 语义，代价也可控。
   void _toggleAuto(bool v) {
     setState(() => _autoRefresh = v);
     _autoTimer?.cancel();
@@ -302,12 +310,15 @@ class _LogViewerPageState extends State<_LogViewerPage> {
     super.dispose();
   }
 
+  /// 把视图滚到底部（模拟 tail -f 的跟随效果）。
   void _jumpBottom() {
     if (_controller.hasClients) {
       _controller.jumpTo(_controller.position.maxScrollExtent);
     }
   }
 
+  /// 重新拉取日志内容；仅在 [_following] 为 true 时才自动滚到底，
+  /// 避免用户上翻查看历史时被强行拉回底部。
   Future<void> _reload() async {
     try {
       final c = await widget.sftp.readString(widget.remotePath);
@@ -317,6 +328,8 @@ class _LogViewerPageState extends State<_LogViewerPage> {
     } catch (_) {}
   }
 
+  /// 开关自动刷新：开启后每 5 秒重读一次文件。
+  /// 轮询而非长连接，是因为 SFTP 没有 tail 语义，代价也可控。
   void _toggleAuto(bool v) {
     setState(() => _autoRefresh = v);
     _autoTimer?.cancel();

@@ -40,6 +40,11 @@ class _DashboardPageState extends State<DashboardPage> {
     super.dispose();
   }
 
+  /// 刷新所有服务器的在线状态。
+  ///
+  /// 串行逐个查询（而非并发），避免同时向多台服务器发起 RCON 握手；
+  /// [alertOnDrop] 为 true 时（即定时轮询），会对比上一轮状态，
+  /// 发现"由在线转为离线"就弹提醒——这是最核心的告警能力。
   Future<void> _refreshAll({bool alertOnDrop = false}) async {
     final rcon = context.read<RconProvider>();
     final servers = context.read<ServerProvider>().servers;

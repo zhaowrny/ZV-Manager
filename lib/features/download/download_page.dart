@@ -35,6 +35,8 @@ class _DownloadPageState extends State<DownloadPage> {
     context.read<DownloadProvider>().init();
   }
 
+  /// 按关键词 + 版本 + 加载器筛选搜索 Modrinth。
+  /// 结果置 null 表示"搜索中"，UI 据此显示骨架/加载态而非"无结果"。
   Future<void> _search() async {
     final query = _searchCtrl.text.trim();
     if (query.isEmpty) return;
@@ -94,6 +96,7 @@ class _DownloadPageState extends State<DownloadPage> {
     );
   }
 
+  /// 搜索页签：搜索框 + 版本/加载器筛选 + 结果列表。
   Widget _buildSearchTab() {
     return Column(
       children: [

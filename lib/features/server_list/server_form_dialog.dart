@@ -2,6 +2,11 @@ import 'package:flutter/material.dart';
 import '../../providers/server_provider.dart';
 import '../../core/l10n/strings.dart';
 
+/// 新增 / 编辑服务器的表单弹窗。
+///
+/// [existingServer] 为 null 表示新建，否则为编辑（保留原 id）。
+/// 校验通过后通过 `Navigator.pop` 返回组装好的 [ServerConfig]，
+/// 持久化交给调用方处理。
 class ServerFormDialog extends StatefulWidget {
   final ServerConfig? existingServer;
 
@@ -58,6 +63,7 @@ class _ServerFormDialogState extends State<ServerFormDialog> {
     return null;
   }
 
+  /// 端口校验：必须是 1-65535 的整数。
   String? _validatePort(String? value) {
     if (value == null || value.trim().isEmpty) return S.t('端口不能为空');
     final port = int.tryParse(value.trim());
@@ -65,6 +71,7 @@ class _ServerFormDialogState extends State<ServerFormDialog> {
     return null;
   }
 
+  /// 组装并返回配置。编辑时沿用原 id，保证已有连接/缓存能对应上。
   void _submit() {
     if (!_formKey.currentState!.validate()) return;
 

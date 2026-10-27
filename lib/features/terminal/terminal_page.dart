@@ -144,6 +144,9 @@ class _TerminalPageState extends State<TerminalPage>
   }
 
   /// 快捷键栏：Tab / Ctrl+C / Ctrl+D / 上下历史 / 常用命令。
+  ///
+  /// 移动端软键盘没有这些键，因此用控制字符直接模拟：
+  /// Ctrl+C = 0x03，Ctrl+D = 0x04，↑ = ESC[A，↓ = ESC[B。
   Widget _buildQuickBar() {
     return Container(
       decoration: BoxDecoration(
@@ -173,6 +176,8 @@ class _TerminalPageState extends State<TerminalPage>
     );
   }
 
+  /// 生成一个快捷按键按钮。
+  /// [data] 是实际写入终端的字节（含控制字符或带换行的整条命令）。
   Widget _key(String label, String data) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 4),
@@ -185,6 +190,9 @@ class _TerminalPageState extends State<TerminalPage>
 }
 
 /// 一个终端会话 = 一台服务器 + 终端缓冲 + SSH 服务。
+///
+/// 多服务器时每个会话独立保活（切页签不重连），
+/// 缓冲上限 5000 行，足以回看滚动输出又不会吃太多内存。
 class _Session {
   final ServerConfig server;
   final Terminal terminal = Terminal(maxLines: 5000);

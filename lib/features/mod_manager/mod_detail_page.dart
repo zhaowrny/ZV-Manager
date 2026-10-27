@@ -54,6 +54,7 @@ class ModDetailPage extends StatelessWidget {
     );
   }
 
+  /// 键值行：左侧固定 96px 宽作标签，右侧自适应剩余宽度并自动换行。
   Widget _kv(String k, String v) => Padding(
         padding: const EdgeInsets.symmetric(vertical: 4),
         child: Row(
