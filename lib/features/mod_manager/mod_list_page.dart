@@ -9,6 +9,7 @@ import 'mod_detail_page.dart';
 import 'dependency_tree_page.dart';
 import '../../core/l10n/strings.dart';
 import '../../core/widgets/empty_state_page.dart';
+import '../../core/widgets/z_widgets.dart';
 
 /// 模组/插件管理页：列出服务器 mods / plugins 目录中的 jar 文件，
 /// 支持上传 / 删除 / 重命名 / 查看详情（M1）。
@@ -74,10 +75,12 @@ class _ModListPageState extends State<ModListPage>
     return ChangeNotifierProvider<ModProvider>.value(
       value: p,
       child: Consumer<ModProvider>(builder: (context, mod, _) {
+        final st = ZStyle.of(context, hasWallpaper: hasWallpaper);
         return Scaffold(
           backgroundColor: hasWallpaper ? Colors.transparent : null,
-          appBar: AppBar(
+          appBar: ZAppBar(
             title: T('模组管理'),
+            backgroundColor: hasWallpaper ? Colors.transparent : null,
             actions: [
               IconButton(
                 icon: const Icon(Icons.refresh),
@@ -98,23 +101,25 @@ class _ModListPageState extends State<ModListPage>
           ),
           body: Column(
             children: [
-              // mods / plugins 切换 + 排序
+              // ---------- 目录切换 + 排序 ----------
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                padding: const EdgeInsets.fromLTRB(16, 6, 16, 10),
                 child: Row(
                   children: [
-                    SegmentedButton<String>(
-                      segments: const [
-                        ButtonSegment(value: 'mods', label: Text('mods')),
-                        ButtonSegment(value: 'plugins', label: Text('plugins')),
-                      ],
-                      selected: {mod.currentDir},
-                      onSelectionChanged: (s) =>
-                          mod.open(server, dir: s.first),
+                    _DirSwitch(
+                      value: mod.currentDir,
+                      onChanged: (v) => mod.open(server, dir: v),
                     ),
                     const Spacer(),
+                    if (mod.files.isNotEmpty)
+                      Text(
+                        S.f('{0} 个文件', [mod.files.length]),
+                        style: TextStyle(fontSize: 12, color: st.subColor),
+                      ),
                     PopupMenuButton<ModSortMode>(
-                      icon: const Icon(Icons.sort),
+                      icon: Icon(Icons.sort_rounded,
+                          size: 20, color: st.subColor),
+                      tooltip: S.t('排序'),
                       onSelected: (m) => mod.setSortMode(m),
                       itemBuilder: (_) => const [
                         PopupMenuItem(value: ModSortMode.name, child: T('按名称')),
@@ -125,43 +130,59 @@ class _ModListPageState extends State<ModListPage>
                   ],
                 ),
               ),
-              if (mod.loading) const LinearProgressIndicator(),
+              if (mod.loading) const LinearProgressIndicator(minHeight: 2),
               if (mod.error != null)
                 Padding(
-                  padding: const EdgeInsets.all(12),
-                  child: Text(S.f('加载失败：{0}', [mod.error.toString()]),
-                      style: TextStyle(color: Theme.of(context).colorScheme.error)),
+                  padding: const EdgeInsets.fromLTRB(20, 4, 20, 8),
+                  child: Row(
+                    children: [
+                      Icon(Icons.error_outline,
+                          size: 16, color: st.scheme.error),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          S.f('加载失败：{0}', [mod.error.toString()]),
+                          style:
+                              TextStyle(fontSize: 12.5, color: st.scheme.error),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               Expanded(
                 child: mod.files.isEmpty && !mod.loading
-                    ? const Center(child: T('目录下没有 .jar 文件'))
-                    : ListView.builder(
-                        itemCount: mod.files.length,
-                        itemBuilder: (context, i) {
-                          final f = mod.files[i];
-                          return ListTile(
-                            leading: const Icon(Icons.extension_outlined),
-                            title: Text(f.fileName),
-                            subtitle: Text(
-                              '${f.meta.name ?? '未知'} ${f.meta.version ?? ''}'
-                              ' · ${_fmtSize(f.size)}',
+                    ? Center(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.extension_off_outlined,
+                                size: 40, color: st.subColor),
+                            const SizedBox(height: 12),
+                            Text(
+                              S.t('目录下没有 .jar 文件'),
+                              style: TextStyle(
+                                  fontSize: 13, color: st.subColor),
                             ),
-                            trailing: PopupMenuButton<String>(
-                              onSelected: (a) => _onAction(context, mod, f, a),
-                              itemBuilder: (_) => const [
-                                PopupMenuItem(value: 'detail', child: T('详情')),
-                                PopupMenuItem(value: 'rename', child: T('重命名')),
-                                PopupMenuItem(value: 'delete', child: T('删除')),
-                              ],
+                            const SizedBox(height: 16),
+                            FilledButton.tonal(
+                              onPressed: mod.loading
+                                  ? null
+                                  : () => _upload(context, mod),
+                              child: T('上传 jar'),
                             ),
-                            onTap: () => Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => ModDetailPage(file: f, provider: mod),
-                              ),
-                            ),
-                          );
-                        },
+                          ],
+                        ),
+                      )
+                    : ListView(
+                        padding: const EdgeInsets.fromLTRB(16, 0, 16, 96),
+                        children: [
+                          ZPanel(style: st, children: [
+                            for (var i = 0; i < mod.files.length; i++) ...[
+                              if (i > 0) ZDivider(style: st),
+                              _jarRow(context, mod, mod.files[i], st),
+                            ],
+                          ]),
+                        ],
                       ),
               ),
             ],
@@ -173,6 +194,46 @@ class _ModListPageState extends State<ModListPage>
           ),
         );
       }),
+    );
+  }
+
+  /// 单个 jar 行：文件名 + 元数据（名称/版本/大小）+ 操作菜单。
+  Widget _jarRow(BuildContext context, ModProvider mod, RemoteJarFile f, ZStyle st) {
+    final metaLine = [
+      if (f.meta.name != null) f.meta.name!,
+      if (f.meta.version != null) f.meta.version!,
+      _fmtSize(f.size),
+    ].join(' · ');
+    return ZRow(
+      style: st,
+      title: f.fileName,
+      subtitle: metaLine,
+      leading: Container(
+        width: 34,
+        height: 34,
+        decoration: BoxDecoration(
+          color: const Color(0xFFAB47BC).withOpacity(0.16),
+          borderRadius: BorderRadius.circular(11),
+        ),
+        child: const Icon(Icons.extension_rounded,
+            size: 18, color: Color(0xFFAB47BC)),
+      ),
+      onTap: () => Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => ModDetailPage(file: f, provider: mod),
+        ),
+      ),
+      trailing: PopupMenuButton<String>(
+        icon: Icon(Icons.more_vert, size: 20, color: st.subColor),
+        tooltip: S.t('更多操作'),
+        onSelected: (a) => _onAction(context, mod, f, a),
+        itemBuilder: (_) => const [
+          PopupMenuItem(value: 'detail', child: T('详情')),
+          PopupMenuItem(value: 'rename', child: T('重命名')),
+          PopupMenuItem(value: 'delete', child: T('删除')),
+        ],
+      ),
     );
   }
 
@@ -235,5 +296,52 @@ class _ModListPageState extends State<ModListPage>
     if (bytes < 1024) return '$bytes B';
     if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(1)} KB';
     return '${(bytes / 1024 / 1024).toStringAsFixed(1)} MB';
+  }
+}
+
+/// mods / plugins 目录切换：两段等宽圆角按钮，选中段用品牌色。
+class _DirSwitch extends StatelessWidget {
+  final String value;
+  final ValueChanged<String> onChanged;
+
+  const _DirSwitch({required this.value, required this.onChanged});
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    Widget seg(String id, String label) {
+      final selected = value == id;
+      return GestureDetector(
+        onTap: () => onChanged(id),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 7),
+          decoration: BoxDecoration(
+            color: selected ? kZAccent : Colors.transparent,
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: 12.5,
+              fontWeight: FontWeight.w700,
+              color: selected ? Colors.white : scheme.onSurfaceVariant,
+            ),
+          ),
+        ),
+      );
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(3),
+      decoration: BoxDecoration(
+        color: scheme.surfaceContainerHigh,
+        borderRadius: BorderRadius.circular(22),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [seg('mods', 'mods'), seg('plugins', 'plugins')],
+      ),
+    );
   }
 }

@@ -12,6 +12,7 @@ import '../player_management/player_list_page.dart';
 import '../settings/settings_page.dart';
 import '../terminal/terminal_page.dart';
 import '../../core/l10n/strings.dart';
+import '../../core/widgets/z_widgets.dart';
 
 /// 主导航壳：底部导航「服务器 · 控制台 · 玩家 · 模组 · 终端 · 我的」（M4）。
 class MainShell extends StatefulWidget {
@@ -27,6 +28,7 @@ class _MainShellState extends State<MainShell> {
   @override
   Widget build(BuildContext context) {
     final en = context.watch<LanguageProvider>().isEnglish;
+    final hasWallpaper = context.watch<WallpaperProvider>().hasWallpaper;
     final labels = en
         ? ['Servers', 'Console', 'Players', 'Mods', 'Terminal', 'Me']
         : ['服务器', '控制台', '玩家', '模组', '终端', '我的'];
@@ -40,18 +42,56 @@ class _MainShellState extends State<MainShell> {
     ];
     return Scaffold(
       body: IndexedStack(index: _index, children: pages),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _index,
-        onDestinationSelected: (i) => setState(() => _index = i),
-        destinations: [
-          for (var i = 0; i < 6; i++)
-            NavigationDestination(
-              icon: _navIcon(i, false),
-              selectedIcon: _navIcon(i, true),
-              label: labels[i],
-            ),
-        ],
+      bottomNavigationBar: _buildNavBar(context, hasWallpaper, labels),
+    );
+  }
+
+  /// 底部导航栏：无壁纸走主题（绿色选中态）；有壁纸时半透明深底 + 白色图标/文字，保持 ZL2 沉浸感。
+  Widget _buildNavBar(BuildContext context, bool hasWallpaper, List<String> labels) {
+    final navBar = NavigationBar(
+      selectedIndex: _index,
+      onDestinationSelected: (i) => setState(() => _index = i),
+      destinations: [
+        for (var i = 0; i < 6; i++)
+          NavigationDestination(
+            icon: _navIcon(i, false),
+            selectedIcon: _navIcon(i, true),
+            label: labels[i],
+          ),
+      ],
+    );
+
+    if (!hasWallpaper) return navBar; // 使用 app_theme 中的 ZL2 绿主题
+
+    final wallpaperNavTheme = NavigationBarThemeData(
+      height: 72,
+      elevation: 0,
+      backgroundColor: Colors.black.withOpacity(0.38),
+      surfaceTintColor: Colors.transparent,
+      indicatorColor: Colors.white.withOpacity(0.18),
+      indicatorShape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.all(Radius.circular(16)),
       ),
+      labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
+      labelTextStyle: WidgetStateProperty.resolveWith((states) {
+        final selected = states.contains(WidgetState.selected);
+        return TextStyle(
+          fontSize: 12,
+          fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+          color: selected ? Colors.white : Colors.white.withOpacity(0.62),
+        );
+      }),
+      iconTheme: WidgetStateProperty.resolveWith((states) {
+        final selected = states.contains(WidgetState.selected);
+        return IconThemeData(
+          size: 24,
+          color: selected ? Colors.white : Colors.white.withOpacity(0.62),
+        );
+      }),
+    );
+    return Theme(
+      data: Theme.of(context).copyWith(navigationBarTheme: wallpaperNavTheme),
+      child: navBar,
     );
   }
 
@@ -81,7 +121,7 @@ class _TabScaffold extends StatelessWidget {
     final hasWallpaper = context.watch<WallpaperProvider>().hasWallpaper;
     return Scaffold(
       backgroundColor: hasWallpaper ? Colors.transparent : null,
-      appBar: AppBar(
+      appBar: ZAppBar(
         title: subtitle == null || subtitle!.isEmpty
             ? Text(title)
             : Column(

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../providers/server_provider.dart';
 import '../../core/l10n/strings.dart';
+import '../../core/widgets/z_widgets.dart';
 
 /// 新增 / 编辑服务器的表单弹窗。
 ///
@@ -92,6 +93,7 @@ class _ServerFormDialogState extends State<ServerFormDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final st = ZStyle.of(context, hasWallpaper: false);
     return AlertDialog(
       title: Text(isEditing ? '编辑服务器' : '添加服务器'),
       content: SingleChildScrollView(
@@ -137,12 +139,19 @@ class _ServerFormDialogState extends State<ServerFormDialog> {
                 onFieldSubmitted: (_) => _submit(),
               ),
               const SizedBox(height: 8),
-              SwitchListTile(
-                contentPadding: EdgeInsets.zero,
-                title: T('SSH 连接（可选）'),
-                subtitle: T('用于模组插件管理与远程终端'),
-                value: _sshEnabled,
-                onChanged: (v) => setState(() => _sshEnabled = v),
+              ZPanel(
+                style: st,
+                children: [
+                  ZRow(
+                    style: st,
+                    title: 'SSH 连接（可选）',
+                    subtitle: '用于模组插件管理与远程终端',
+                    trailing: ZToggle(
+                      value: _sshEnabled,
+                      onChanged: (v) => setState(() => _sshEnabled = v),
+                    ),
+                  ),
+                ],
               ),
               if (_sshEnabled) ...[
                 TextFormField(

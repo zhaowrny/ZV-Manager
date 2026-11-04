@@ -3,6 +3,9 @@ import 'package:flutter/services.dart';
 import '../../core/utils/command_preset_service.dart';
 import '../../core/utils/rcon_client.dart';
 import '../../core/l10n/strings.dart';
+import '../../core/widgets/z_widgets.dart';
+import '../../providers/wallpaper_provider.dart';
+import 'package:provider/provider.dart';
 
 /// 控制台页：命令输入 + 输出回显 + 命令历史 + Tab 补全 + 快捷指令。
 ///
@@ -170,38 +173,74 @@ class _ConsolePageState extends State<ConsolePage> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final hasWallpaper = context.watch<WallpaperProvider>().hasWallpaper;
 
     return Scaffold(
-      appBar: AppBar(
+      backgroundColor: hasWallpaper ? Colors.transparent : null,
+      appBar: ZAppBar(
         title: T('服务器控制台'),
-        actions: const [],
+        backgroundColor: hasWallpaper ? Colors.transparent : null,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.delete_sweep_outlined),
+            tooltip: S.t('清空输出'),
+            onPressed: () => setState(_outputLines.clear),
+          ),
+        ],
       ),
       body: Column(
         children: [
+          // ---------- 输出区 ----------
           Expanded(
-            child: Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(12),
-              color: theme.colorScheme.surfaceContainerHighest.withOpacity(0.3),
-              child: ListView.builder(
-                controller: _scrollController,
-                itemCount: _outputLines.length,
-                itemBuilder: (_, i) {
-                  final line = _outputLines[i];
-                  return SelectableText(
-                    line.text,
-                    style: TextStyle(
-                      fontFamily: 'monospace',
-                      fontSize: 13,
-                      color: line.isError
-                          ? theme.colorScheme.error
-                          : line.isCommand
-                              ? theme.colorScheme.primary
-                              // 按日志级别前缀着色：WARN 黄 / ERROR 红 / INFO 绿
-                              : _logLevelColor(line.text) ?? theme.colorScheme.onSurface,
-                    ),
-                  );
-                },
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(12, 4, 12, 8),
+              child: Container(
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  color: scheme.surfaceContainerHigh.withOpacity(0.55),
+                  borderRadius: BorderRadius.circular(kZRadius),
+                ),
+                padding: const EdgeInsets.fromLTRB(14, 12, 10, 12),
+                child: _outputLines.isEmpty
+                    ? Center(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.terminal_rounded,
+                                size: 32, color: scheme.onSurfaceVariant),
+                            const SizedBox(height: 10),
+                            Text(
+                              S.t('输入命令后按回车执行'),
+                              style: TextStyle(
+                                  fontSize: 12.5,
+                                  color: scheme.onSurfaceVariant),
+                            ),
+                          ],
+                        ),
+                      )
+                    : ListView.builder(
+                        controller: _scrollController,
+                        itemCount: _outputLines.length,
+                        itemBuilder: (_, i) {
+                          final line = _outputLines[i];
+                          return SelectableText(
+                            line.text,
+                            style: TextStyle(
+                              fontFamily: 'monospace',
+                              fontSize: 13,
+                              height: 1.45,
+                              color: line.isError
+                                  ? scheme.error
+                                  : line.isCommand
+                                      ? scheme.primary
+                                      // 按日志级别前缀着色：WARN 黄 / ERROR 红 / INFO 绿
+                                      : _logLevelColor(line.text) ??
+                                          scheme.onSurface,
+                            ),
+                          );
+                        },
+                      ),
               ),
             ),
           ),
@@ -210,39 +249,66 @@ class _ConsolePageState extends State<ConsolePage> {
             onSend: _sendCommand,
             onManage: _managePresets,
           ),
+          // ---------- 输入区 ----------
           SafeArea(
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: KeyboardListener(
-                      focusNode: FocusNode(),
-                      onKeyEvent: (event) {
-                        if (event is KeyDownEvent) {
-                          if (event.logicalKey == LogicalKeyboardKey.arrowUp) _onHistoryNavigate(true);
-                          if (event.logicalKey == LogicalKeyboardKey.arrowDown) _onHistoryNavigate(false);
-                          if (event.logicalKey == LogicalKeyboardKey.tab) _onTabPressed();
-                        }
-                      },
-                      child: TextField(
-                        controller: _controller,
-                        decoration: InputDecoration(
-                          hintText: S.t('输入命令...'),
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              padding: const EdgeInsets.fromLTRB(12, 4, 12, 10),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: scheme.surfaceContainerHigh,
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                padding: const EdgeInsets.only(left: 14, right: 6),
+                child: Row(
+                  children: [
+                    Icon(Icons.chevron_right_rounded,
+                        size: 18, color: scheme.primary),
+                    const SizedBox(width: 4),
+                    Expanded(
+                      child: KeyboardListener(
+                        focusNode: FocusNode(),
+                        onKeyEvent: (event) {
+                          if (event is KeyDownEvent) {
+                            if (event.logicalKey == LogicalKeyboardKey.arrowUp) _onHistoryNavigate(true);
+                            if (event.logicalKey == LogicalKeyboardKey.arrowDown) _onHistoryNavigate(false);
+                            if (event.logicalKey == LogicalKeyboardKey.tab) _onTabPressed();
+                          }
+                        },
+                        child: TextField(
+                          controller: _controller,
+                          decoration: InputDecoration(
+                            hintText: S.t('输入命令...'),
+                            hintStyle: TextStyle(
+                                fontSize: 13, color: scheme.onSurfaceVariant),
+                            border: InputBorder.none,
+                            isDense: true,
+                            contentPadding:
+                                const EdgeInsets.symmetric(vertical: 14),
+                          ),
+                          style: const TextStyle(
+                              fontFamily: 'monospace', fontSize: 13.5),
+                          onSubmitted: (_) => _executeCommand(),
                         ),
-                        style: const TextStyle(fontFamily: 'monospace', fontSize: 14),
-                        onSubmitted: (_) => _executeCommand(),
                       ),
                     ),
-                  ),
-                  const SizedBox(width: 8),
-                  FilledButton.icon(
-                    onPressed: _executeCommand,
-                    icon: const Icon(Icons.send_rounded, size: 18),
-                    label: T('发送'),
-                  ),
-                ],
+                    const SizedBox(width: 4),
+                    // 圆形发送钮，与 ZL2 的圆形控件语言一致
+                    GestureDetector(
+                      onTap: _executeCommand,
+                      child: Container(
+                        width: 38,
+                        height: 38,
+                        margin: const EdgeInsets.symmetric(vertical: 6),
+                        decoration: const BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: kZAccent,
+                        ),
+                        child: const Icon(Icons.arrow_upward_rounded,
+                            size: 20, color: Colors.white),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
@@ -302,12 +368,26 @@ class _PresetBar extends StatelessWidget {
               separatorBuilder: (_, __) => const SizedBox(width: 8),
               itemBuilder: (context, i) {
                 final preset = presets[i];
-                return ActionChip(
-                  label: Text(preset.label),
-                  labelStyle: TextStyle(fontSize: 13, color: theme.colorScheme.onSecondaryContainer),
-                  visualDensity: VisualDensity.compact,
-                  backgroundColor: theme.colorScheme.secondaryContainer.withOpacity(0.5),
-                  onPressed: () => onSend(preset.command),
+                return Center(
+                  child: GestureDetector(
+                    onTap: () => onSend(preset.command),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 13, vertical: 7),
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.surfaceContainerHigh,
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Text(
+                        preset.label,
+                        style: TextStyle(
+                          fontSize: 12.5,
+                          fontWeight: FontWeight.w600,
+                          color: theme.colorScheme.onSurface,
+                        ),
+                      ),
+                    ),
+                  ),
                 );
               },
             ),
@@ -379,15 +459,11 @@ class _PresetManageSheetState extends State<_PresetManageSheet> {
                       itemCount: _presets.length,
                       itemBuilder: (context, i) {
                         final preset = _presets[i];
-                        return ListTile(
-                          leading: const Icon(Icons.bolt_outlined),
-                          title: Text(preset.label),
-                          subtitle: Text(
-                            preset.command,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(fontFamily: 'monospace', fontSize: 12),
-                          ),
+                        return ZSheetRow(
+                          icon: Icons.bolt_outlined,
+                          title: preset.label,
+                          subtitle: preset.command,
+                          subtitleMono: true,
                           trailing: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [

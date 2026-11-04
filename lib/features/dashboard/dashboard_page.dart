@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/wallpaper_provider.dart';
 import '../../app.dart' show navigatorKey;
-import '../../core/theme/app_theme.dart';
 import '../../providers/rcon_provider.dart';
 import '../../providers/server_provider.dart';
 import '../server_list/server_form_dialog.dart';
@@ -12,6 +11,7 @@ import '../mod_manager/mod_list_page.dart';
 import '../terminal/terminal_page.dart';
 import 'server_picker_bar.dart';
 import '../../core/l10n/strings.dart';
+import '../../core/widgets/z_widgets.dart';
 
 /// 服务器 Dashboard：卡片式布局展示选中服务器的
 /// 在线状态 / 延迟 / 在线人数 / TPS / 磁盘（后续 Shell 采集）+ 快捷入口（M4）。
@@ -158,11 +158,13 @@ class _DashboardPageState extends State<DashboardPage> {
     final selected = holder.server ?? (servers.isNotEmpty ? servers.first : null);
     final hasWallpaper = context.watch<WallpaperProvider>().hasWallpaper;
     final status = selected != null ? _status[selected.id] : null;
+    final st = ZStyle.of(context, hasWallpaper: hasWallpaper);
 
     return Scaffold(
       backgroundColor: hasWallpaper ? Colors.transparent : null,
-      appBar: AppBar(
+      appBar: ZAppBar(
         title: const Text('ZV Manager'),
+        backgroundColor: hasWallpaper ? Colors.transparent : null,
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
@@ -176,259 +178,386 @@ class _DashboardPageState extends State<DashboardPage> {
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _addServer,
-        tooltip: S.t('添加服务器'),
-        child: const Icon(Icons.add),
-      ),
+      floatingActionButton: servers.isEmpty
+          ? null
+          : FloatingActionButton(
+              onPressed: _addServer,
+              tooltip: S.t('添加服务器'),
+              child: const Icon(Icons.add),
+            ),
       body: servers.isEmpty
-          ? Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
+          ? _EmptyDashboard(onAdd: _addServer, style: st)
+          : RefreshIndicator(
+              onRefresh: _refreshAll,
+              child: ListView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: const EdgeInsets.fromLTRB(16, 6, 16, 96),
                 children: [
-                  T('还没有服务器，点击下方按钮添加吧'),
+                  // ---------- 当前服务器 ----------
+                  if (selected != null)
+                    _CurrentServerPanel(
+                      server: selected,
+                      status: status,
+                      servers: servers,
+                      style: st,
+                      onSelect: (s) {
+                        holder.select(s);
+                        setState(() {});
+                      },
+                    ),
                   const SizedBox(height: 16),
-                  FilledButton.icon(
-                    icon: const Icon(Icons.add),
-                    label: T('添加服务器'),
-                    onPressed: _addServer,
+                  _label(S.t('运行状态'), st),
+                  GridView.count(
+                    crossAxisCount: 2,
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    childAspectRatio: 1.95,
+                    mainAxisSpacing: 10,
+                    crossAxisSpacing: 10,
+                    children: [
+                      _statusTile(
+                        style: st,
+                        icon: status?.online == true
+                            ? Icons.wifi_rounded
+                            : Icons.wifi_off_rounded,
+                        color: status?.online == true
+                            ? kZAccent
+                            : const Color(0xFFEF5350),
+                        label: status?.online == true ? '在线' : '离线',
+                        sub: status == null ? '—' : '${status.latencyMs}ms',
+                      ),
+                      _statusTile(
+                        style: st,
+                        icon: Icons.people_alt_rounded,
+                        color: const Color(0xFF42A5F5),
+                        label: S.t('在线人数'),
+                        sub: '${status?.playerCount ?? 0}',
+                      ),
+                      _statusTile(
+                        style: st,
+                        icon: Icons.speed_rounded,
+                        color: const Color(0xFFFFA726),
+                        label: 'TPS',
+                        sub: status?.tps?.toStringAsFixed(1) ?? '—',
+                      ),
+                      _statusTile(
+                        style: st,
+                        icon: Icons.storage_rounded,
+                        color: const Color(0xFFAB47BC),
+                        label: S.t('磁盘'),
+                        sub: S.t('需 SSH 终端'),
+                      ),
+                    ],
                   ),
+                  const SizedBox(height: 20),
+                  _label(S.t('服务器'), st),
+                  ZPanel(style: st, children: [
+                    for (var i = 0; i < servers.length; i++) ...[
+                      if (i > 0) ZDivider(style: st),
+                      _serverRow(servers[i], selected, st),
+                    ],
+                  ]),
+                  const SizedBox(height: 20),
+                  _label(S.t('快捷入口'), st),
+                  ZPanel(style: st, children: [
+                    ZRow(
+                      title: '下载中心',
+                      subtitle: '搜索 Modrinth 模组，镜像加速下载',
+                      style: st,
+                      leading: _entryIcon(Icons.download_rounded,
+                          const Color(0xFF42A5F5)),
+                      onTap: () => Navigator.push(context,
+                          MaterialPageRoute(builder: (_) => const DownloadPage())),
+                    ),
+                    ZDivider(style: st),
+                    ZRow(
+                      title: '远程终端',
+                      subtitle: '通过 SSH 执行任意命令',
+                      style: st,
+                      leading: _entryIcon(
+                          Icons.terminal_rounded, const Color(0xFFFF7043)),
+                      onTap: () => Navigator.push(context,
+                          MaterialPageRoute(builder: (_) => const TerminalPage())),
+                    ),
+                    ZDivider(style: st),
+                    ZRow(
+                      title: '模组管理',
+                      subtitle: '上传、删除、查看依赖',
+                      style: st,
+                      leading: _entryIcon(
+                          Icons.extension_rounded, const Color(0xFFAB47BC)),
+                      onTap: () => Navigator.push(context,
+                          MaterialPageRoute(builder: (_) => const ModListPage())),
+                    ),
+                  ]),
                 ],
               ),
-            )
-          : ListView(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
-              children: [
-                // 服务器选择器
-                Card(
-                  child: ListTile(
-                    leading: const Icon(Icons.dns),
-                    title: Text(selected?.name ?? '未选择'),
-                    subtitle: Text('${selected?.host ?? '-'}:${selected?.port ?? '-'}'),
-                    trailing: DropdownButton<ServerConfig>(
-                      underline: const SizedBox.shrink(),
-                      hint: T('切换'),
-                      items: servers
-                          .map((s) => DropdownMenuItem(value: s, child: Text(s.name)))
-                          .toList(),
-                      onChanged: (s) {
-                        holder.select(s);
-                        setState(() {});
-                      },
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 8),
-                // 状态卡片
-                GridView.count(
-                  crossAxisCount: 2,
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  childAspectRatio: 1.9,
-                  mainAxisSpacing: 10,
-                  crossAxisSpacing: 10,
-                  children: [
-                    _statusCard(
-                      icon: status?.online == true ? Icons.circle : Icons.circle_outlined,
-                      color: status?.online == true ? Colors.green : Colors.red,
-                      label: status?.online == true ? '在线' : '离线',
-                      sub: status == null ? '—' : '${status.latencyMs}ms',
-                    ),
-                    _statusCard(
-                      icon: Icons.person,
-                      color: Colors.blue,
-                      label: S.t('在线人数'),
-                      sub: '${status?.playerCount ?? 0}',
-                    ),
-                    _statusCard(
-                      icon: Icons.speed,
-                      color: Colors.orange,
-                      label: 'TPS',
-                      sub: status?.tps?.toStringAsFixed(1) ?? '—',
-                    ),
-                    _statusCard(
-                      icon: Icons.storage,
-                      color: Colors.purple,
-                      label: S.t('磁盘'),
-                      sub: '需 SSH 终端',
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                // 服务器卡片列表（点击选中）
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(4, 16, 4, 8),
-                  child: T('服务器', style: Theme.of(context).textTheme.titleMedium),
-                ),
-                ...servers.map((s) {
-                  final st = _status[s.id];
-                  final isSel = selected?.id == s.id;
-                  return Card(
-                    margin: const EdgeInsets.only(bottom: 8),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(AppTheme.radiusM),
-                      side: isSel
-                          ? BorderSide(color: Theme.of(context).colorScheme.primary, width: 1.6)
-                          : BorderSide(
-                              color: Theme.of(context).colorScheme.outlineVariant),
-                    ),
-                    color: isSel
-                        ? Theme.of(context).colorScheme.primary.withOpacity(0.06)
-                        : null,
-                    child: ListTile(
-                      selected: isSel,
-                      selectedTileColor: Colors.transparent,
-                      leading: Icon(
-                        st?.online == true ? Icons.circle : Icons.circle_outlined,
-                        color: st?.online == true ? Colors.green : Colors.red,
-                      ),
-                      title: Text(s.name),
-                      subtitle: Text(
-                        st?.online == true
-                            ? S.f('在线 · {0}ms · {1} 人', [st!.latencyMs, st.playerCount]) + (st.tps != null ? ' · TPS ${st.tps!.toStringAsFixed(1)}' : '')
-                            : S.t('离线'),
-                      ),
-                      trailing: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          if (isSel) const Icon(Icons.check, color: Colors.green),
-                          PopupMenuButton<String>(
-                            onSelected: (a) => _onServerAction(context, s, a),
-                            itemBuilder: (_) => const [
-                              PopupMenuItem(value: 'edit', child: T('编辑')),
-                              PopupMenuItem(value: 'delete', child: T('删除')),
-                            ],
-                          ),
-                        ],
-                      ),
-                      onTap: () {
-                        holder.select(s);
-                        setState(() {});
-                      },
-                    ),
-                  );
-                }),
-                const SizedBox(height: 8),
-                // 快捷入口
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(4, 16, 4, 8),
-                  child: T('快捷入口', style: Theme.of(context).textTheme.titleMedium),
-                ),
-                Row(
-                  children: [
-                    _quickEntry(
-                      icon: Icons.download_outlined,
-                      color: Colors.blue,
-                      label: S.t('下载中心'),
-                      onTap: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => const DownloadPage()),
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    _quickEntry(
-                      icon: Icons.terminal,
-                      color: Colors.deepOrange,
-                      label: S.t('远程终端'),
-                      onTap: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => const TerminalPage()),
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    _quickEntry(
-                      icon: Icons.extension_outlined,
-                      color: Colors.purple,
-                      label: S.t('模组管理'),
-                      onTap: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => const ModListPage()),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
             ),
     );
   }
 
-  Widget _statusCard({
-    required IconData icon,
-    required Color color,
-    required String label,
-    required String sub,
-  }) {
-    final dark = Theme.of(context).brightness == Brightness.dark;
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(14),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(7),
-              decoration: BoxDecoration(
-                color: color.withOpacity(0.14),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Icon(icon, color: color, size: 16),
-            ),
-            const SizedBox(height: 10),
-            Text(label, style: Theme.of(context).textTheme.bodySmall),
-            const SizedBox(height: 2),
-            FittedBox(
-              fit: BoxFit.scaleDown,
-              child: Text(
-                sub,
-                maxLines: 1,
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.w700,
-                      color: dark ? Colors.white : const Color(0xFF222222),
-                    ),
-              ),
-            ),
-          ],
+  /// 面板外的小分组标题。
+  Widget _label(String text, ZStyle st) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(6, 0, 6, 8),
+      child: Text(
+        text,
+        style: TextStyle(
+          fontSize: 12.5,
+          fontWeight: FontWeight.w700,
+          letterSpacing: 0.2,
+          color: st.subColor,
         ),
       ),
     );
   }
 
-  /// 快捷入口：彩色图标 + 标题的方块按钮。
-  Widget _quickEntry({
+  /// 快捷入口左侧的圆角图标块。
+  Widget _entryIcon(IconData icon, Color color) {
+    return Container(
+      width: 34,
+      height: 34,
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.16),
+        borderRadius: BorderRadius.circular(11),
+      ),
+      child: Icon(icon, size: 18, color: color),
+    );
+  }
+
+  /// 服务器列表行（点击切换当前服务器，右侧菜单可编辑/删除）。
+  Widget _serverRow(ServerConfig s, ServerConfig? selected, ZStyle st) {
+    final online = _status[s.id]?.online == true;
+    final isSel = selected?.id == s.id;
+    final dotColor = online ? kZAccent : const Color(0xFFEF5350);
+    return ZRow(
+      style: st,
+      title: s.name,
+      subtitle: '${s.host}:${s.port}',
+      leading: Container(
+        width: 34,
+        height: 34,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: dotColor.withOpacity(0.16),
+        ),
+        child: Icon(Icons.dns_rounded, size: 17, color: dotColor),
+      ),
+      onTap: () => context.read<SelectedServerHolder>().select(s),
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (isSel) ...[
+            ZBadge(label: S.t('当前'), color: kZAccent),
+            const SizedBox(width: 2),
+          ],
+          PopupMenuButton<String>(
+            icon: Icon(Icons.more_vert, size: 20, color: st.subColor),
+            tooltip: S.t('更多操作'),
+            onSelected: (a) => _onServerAction(context, s, a),
+            itemBuilder: (_) => const [
+              PopupMenuItem(value: 'edit', child: T('编辑')),
+              PopupMenuItem(value: 'delete', child: T('删除')),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// 顶部「当前服务器」面板：名称 + 地址 + 运行指标 + 切换入口。
+  Widget _statusTile({
+    required ZStyle style,
     required IconData icon,
     required Color color,
     required String label,
-    required VoidCallback onTap,
+    required String sub,
   }) {
-    return Expanded(
-      child: Material(
-        color: Theme.of(context).colorScheme.surfaceContainerLow,
-        borderRadius: BorderRadius.circular(AppTheme.radiusM),
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(AppTheme.radiusM),
-          child: Container(
-            padding: const EdgeInsets.symmetric(vertical: 14),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(AppTheme.radiusM),
-              border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
-            ),
-            child: Column(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: color.withOpacity(0.14),
-                    borderRadius: BorderRadius.circular(AppTheme.radiusS),
-                  ),
-                  child: Icon(icon, color: color, size: 22),
+    return Container(
+      padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+      decoration: BoxDecoration(
+        color: style.panelColor,
+        borderRadius: BorderRadius.circular(kZRadius),
+        border: Border.all(color: style.borderColor, width: 1),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: color.withOpacity(0.16),
+                  borderRadius: BorderRadius.circular(9),
                 ),
-                const SizedBox(height: 8),
-                Text(label, style: Theme.of(context).textTheme.bodySmall),
-              ],
+                child: Icon(icon, color: color, size: 15),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(fontSize: 11.5, color: style.subColor),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(
+              sub,
+              maxLines: 1,
+              style: TextStyle(
+                fontSize: 21,
+                fontWeight: FontWeight.w700,
+                letterSpacing: -0.3,
+                color: style.titleColor,
+              ),
             ),
           ),
+        ],
+      ),
+    );
+  }
+}
+
+/// 当前服务器概览面板：名称/地址/状态 + 切换下拉。
+class _CurrentServerPanel extends StatelessWidget {
+  final ServerConfig server;
+  final ServerStatus? status;
+  final List<ServerConfig> servers;
+  final ZStyle style;
+  final ValueChanged<ServerConfig> onSelect;
+
+  const _CurrentServerPanel({
+    required this.server,
+    required this.status,
+    required this.servers,
+    required this.style,
+    required this.onSelect,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final online = status?.online == true;
+    final color = online ? kZAccent : const Color(0xFFEF5350);
+    return ZPanel(style: style, children: [
+      Padding(
+        padding: const EdgeInsets.fromLTRB(16, 16, 12, 16),
+        child: Row(
+          children: [
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: color.withOpacity(0.16),
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: Icon(Icons.dns_rounded, color: color, size: 22),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    server.name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                      color: style.titleColor,
+                    ),
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    '${server.host}:${server.port}',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(fontSize: 12, color: style.subColor),
+                  ),
+                ],
+              ),
+            ),
+            if (servers.length > 1)
+              PopupMenuButton<ServerConfig>(
+                tooltip: S.t('切换'),
+                icon: Icon(Icons.swap_horiz_rounded,
+                    size: 20, color: style.subColor),
+                onSelected: onSelect,
+                itemBuilder: (_) => [
+                  for (final s in servers)
+                    PopupMenuItem(
+                      value: s,
+                      child: Text(
+                        s.name,
+                        style: TextStyle(
+                          fontWeight:
+                              s.id == server.id ? FontWeight.w700 : null,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ZBadge(label: online ? S.t('在线') : S.t('离线'), color: color),
+          ],
+        ),
+      ),
+    ]);
+  }
+}
+
+/// 无服务器时的引导页。
+class _EmptyDashboard extends StatelessWidget {
+  final VoidCallback onAdd;
+  final ZStyle style;
+  const _EmptyDashboard({required this.onAdd, required this.style});
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 84,
+              height: 84,
+              decoration: BoxDecoration(
+                color: kZAccent.withOpacity(0.12),
+                borderRadius: BorderRadius.circular(26),
+              ),
+              child: const Icon(Icons.dns_rounded, size: 38, color: kZAccent),
+            ),
+            const SizedBox(height: 18),
+            Text(
+              S.t('还没有添加服务器'),
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w700,
+                color: style.titleColor,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              S.t('填入主机地址与 RCON 密码，即可在手机上管理'),
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                  fontSize: 12.5, height: 1.5, color: style.subColor),
+            ),
+            const SizedBox(height: 22),
+            FilledButton.icon(
+              onPressed: onAdd,
+              icon: const Icon(Icons.add),
+              label: T('添加服务器'),
+            ),
+          ],
         ),
       ),
     );

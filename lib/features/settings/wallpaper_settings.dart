@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'dart:io';
 import '../../providers/wallpaper_provider.dart';
 import '../../core/l10n/strings.dart';
+import '../../core/widgets/z_widgets.dart';
 
 class WallpaperSettings extends StatelessWidget {
   const WallpaperSettings({super.key});
@@ -15,10 +17,14 @@ class WallpaperSettings extends StatelessWidget {
     final theme = Theme.of(context);
 
     return Scaffold(
-      appBar: AppBar(
+      appBar: ZAppBar(
         title: T('壁纸设置'),
         backgroundColor: theme.colorScheme.primary,
         foregroundColor: Colors.white,
+        systemOverlayStyle: const SystemUiOverlayStyle(
+          statusBarIconBrightness: Brightness.light,
+          statusBarBrightness: Brightness.dark,
+        ),
       ),
       body: ListView(
         padding: const EdgeInsets.all(16),

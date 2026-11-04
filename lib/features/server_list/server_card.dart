@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../core/l10n/strings.dart';
+import '../../core/widgets/z_widgets.dart';
 
 /// 服务器卡片的数据状态。
 enum ServerCardState {
@@ -49,7 +50,6 @@ class ServerCard extends StatelessWidget {
     this.tps,
   });
 
-  static const double _radius = 20;
 
   /// TPS 分档着色：≥16 流畅，≥10 偏低，否则卡顿。
   static Color tpsColor(double tps) {
@@ -86,11 +86,10 @@ class ServerCard extends StatelessWidget {
     final scheme = theme.colorScheme;
     final online = state == ServerCardState.online;
 
-    // 卡片底色跟随主题表面色，浮一层极淡的品牌色，避免纯白/纯黑显得生硬。
-    final Color base = Color.alphaBlend(
-      scheme.primary.withOpacity(online ? 0.06 : 0.02),
-      scheme.surface,
-    );
+    // 在线态用品牌色描边强调，离线态退成中性描边，避免整屏红框太吵
+    final borderColor = online
+        ? kZAccent.withOpacity(0.45)
+        : scheme.outlineVariant.withOpacity(0.7);
 
     return Semantics(
       button: true,
@@ -99,24 +98,12 @@ class ServerCard extends StatelessWidget {
         color: Colors.transparent,
         child: Ink(
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(_radius),
-            color: base,
-            border: Border.all(
-              color: online
-                  ? scheme.primary.withOpacity(0.38)
-                  : scheme.outlineVariant.withOpacity(0.55),
-              width: online ? 1.4 : 1,
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(online ? 0.08 : 0.04),
-                blurRadius: online ? 18 : 10,
-                offset: const Offset(0, 6),
-              ),
-            ],
+            borderRadius: BorderRadius.circular(kZRadius),
+            color: scheme.surfaceContainerLow,
+            border: Border.all(color: borderColor, width: online ? 1.4 : 1),
           ),
           child: InkWell(
-            borderRadius: BorderRadius.circular(_radius),
+            borderRadius: BorderRadius.circular(kZRadius),
             onTap: onTap,
             child: Padding(
               padding: const EdgeInsets.fromLTRB(16, 14, 8, 14),
@@ -150,41 +137,18 @@ class ServerCard extends StatelessWidget {
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: theme.textTheme.titleMedium?.copyWith(
+              fontSize: 15.5,
               fontWeight: FontWeight.w700,
               letterSpacing: -0.2,
             ),
           ),
         ),
-        // 状态胶囊
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
-          decoration: BoxDecoration(
-            color: _statusColor.withOpacity(0.13),
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: _statusColor.withOpacity(0.28)),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                _statusLabel,
-                style: theme.textTheme.labelSmall?.copyWith(
-                  color: _statusColor,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              if (online && latencyMs != null) ...[
-                const SizedBox(width: 6),
-                Text(
-                  '${latencyMs}ms',
-                  style: theme.textTheme.labelSmall?.copyWith(
-                    color: _statusColor.withOpacity(0.75),
-                    fontFeatures: const [FontFeature.tabularFigures()],
-                  ),
-                ),
-              ],
-            ],
-          ),
+        // 状态胶囊（与 ZL2 的标签样式统一）
+        ZBadge(
+          label: online && latencyMs != null
+              ? '$_statusLabel · ${latencyMs}ms'
+              : _statusLabel,
+          color: _statusColor,
         ),
         _buildMenu(context, scheme),
       ],
@@ -242,6 +206,7 @@ class ServerCard extends StatelessWidget {
             overflow: TextOverflow.ellipsis,
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
                   color: scheme.onSurfaceVariant,
+                  fontSize: 12,
                   letterSpacing: 0.1,
                 ),
           ),
@@ -259,7 +224,7 @@ class ServerCard extends StatelessWidget {
         _Pill(
           icon: Icons.autorenew_rounded,
           label: S.t('正在获取状态'),
-          color: Color(0xFF94A3B8),
+          color: const Color(0xFF94A3B8),
         ),
       ]);
     }
@@ -271,7 +236,7 @@ class ServerCard extends StatelessWidget {
             child: _Pill(
               icon: Icons.cloud_off_outlined,
               label: S.t('无法连接'),
-              color: Color(0xFFF87171),
+              color: const Color(0xFFF87171),
             ),
           ),
           const Spacer(),

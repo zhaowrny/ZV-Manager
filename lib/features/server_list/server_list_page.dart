@@ -10,6 +10,7 @@ import '../settings/settings_page.dart';
 import 'server_card.dart';
 import 'server_form_dialog.dart';
 import '../../core/l10n/strings.dart';
+import '../../core/widgets/z_widgets.dart';
 
 class ServerListPage extends StatefulWidget {
   const ServerListPage({super.key});
@@ -192,7 +193,7 @@ class _ServerListPageState extends State<ServerListPage> {
     final hasWallpaper = context.watch<WallpaperProvider>().hasWallpaper;
 
     return Scaffold(
-      appBar: AppBar(
+      appBar: ZAppBar(
         title: const Text('ZV Manager'),
         backgroundColor: hasWallpaper ? Colors.transparent : null,
         elevation: hasWallpaper ? 0 : null,

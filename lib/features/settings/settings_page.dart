@@ -7,6 +7,7 @@ import 'package:path_provider/path_provider.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/utils/background_service.dart';
 import '../../core/widgets/background_widget.dart';
+import '../../core/widgets/z_widgets.dart';
 import '../../providers/theme_provider.dart';
 import '../../providers/wallpaper_provider.dart';
 import 'help_page.dart';
@@ -55,39 +56,49 @@ class _SettingsPageState extends State<SettingsPage> {
   void _showBackgroundPicker() {
     showModalBottomSheet(
       context: context,
-      builder: (ctx) => SafeArea(
-        child: Wrap(
-          children: [
-            ListTile(
-              leading: const Icon(Icons.photo, color: Colors.blue),
-              title: T('选择图片'),
-              onTap: () {
-                Navigator.pop(ctx);
-                _pickImage();
-              },
+      builder: (ctx) {
+        final st = ZStyle.of(ctx, hasWallpaper: false);
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: ZPanel(
+              style: st,
+              children: [
+                ZSheetRow(
+                  icon: Icons.photo,
+                  iconColor: Colors.blue,
+                  title: '选择图片',
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    _pickImage();
+                  },
+                ),
+                ZDivider(style: st),
+                ZSheetRow(
+                  icon: Icons.videocam,
+                  title: '选择视频',
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    _pickVideo();
+                  },
+                ),
+                if (_currentBgPath != null) ...[
+                  ZDivider(style: st),
+                  ZSheetRow(
+                    icon: Icons.delete,
+                    danger: true,
+                    title: '清除背景',
+                    onTap: () {
+                      Navigator.pop(ctx);
+                      _clearBackground();
+                    },
+                  ),
+                ],
+              ],
             ),
-            ListTile(
-              leading: const Icon(Icons.videocam, color: Colors.green),
-              title: T('选择视频'),
-              onTap: () {
-                Navigator.pop(ctx);
-                _pickVideo();
-              },
-            ),
-            if (_currentBgPath != null) ...[
-              const Divider(),
-              ListTile(
-                leading: const Icon(Icons.delete, color: Colors.red),
-                title: T('清除背景', style: TextStyle(color: Colors.red)),
-                onTap: () {
-                  Navigator.pop(ctx);
-                  _clearBackground();
-                },
-              ),
-            ],
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
   }
 
@@ -114,18 +125,40 @@ class _SettingsPageState extends State<SettingsPage> {
     final provider = context.read<LanguageProvider>();
     final mode = await showDialog<LanguageMode>(
       context: context,
-      builder: (_) => SimpleDialog(
-        title: T('语言 / Language'),
-        children: [
-          for (final m in LanguageMode.values)
-            RadioListTile<LanguageMode>(
-              title: Text(_languageName(m)),
-              value: m,
-              groupValue: provider.mode,
-              onChanged: (v) => Navigator.pop(context, v),
+      builder: (ctx) {
+        final st = ZStyle.of(ctx, hasWallpaper: false);
+        return Dialog(
+          child: Padding(
+            padding: const EdgeInsets.all(8),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+                  child: T('语言 / Language', style: Theme.of(ctx).textTheme.titleMedium),
+                ),
+                ZPanel(
+                  style: st,
+                  children: [
+                    for (final m in LanguageMode.values) ...[
+                      if (m != LanguageMode.values.first) ZDivider(style: st),
+                      ZSheetRow(
+                        icon: Icons.language,
+                        title: _languageName(m),
+                        trailing: provider.mode == m
+                            ? Icon(Icons.check_circle_rounded, color: kZAccent, size: 22)
+                            : Icon(Icons.circle_outlined, color: st.subColor, size: 22),
+                        onTap: () => Navigator.pop(ctx, m),
+                      ),
+                    ],
+                  ],
+                ),
+              ],
             ),
-        ],
-      ),
+          ),
+        );
+      },
     );
     if (mode != null) await provider.setMode(mode);
   }
@@ -226,131 +259,132 @@ class _SettingsPageState extends State<SettingsPage> {
   @override
   Widget build(BuildContext context) {
     final themeProvider = context.watch<ThemeProvider>();
+    final hasWallpaper = context.watch<WallpaperProvider>().hasWallpaper;
+    final scheme = Theme.of(context).colorScheme;
+    final st = ZStyle(hasWallpaper: hasWallpaper, scheme: scheme);
 
     return Scaffold(
-      appBar: AppBar(title: T('设置')),
+      backgroundColor: hasWallpaper ? Colors.transparent : null,
+      // 透明 AppBar，让壁纸延伸到顶
+      appBar: ZAppBar(
+        title: T('设置'),
+        backgroundColor: Colors.transparent,
+      ),
       body: ListView(
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
         children: [
-          // ---------- 外观主题 ----------
-          ListTile(
-            leading: const Icon(Icons.palette_outlined),
-            title: T('外观主题'),
-            trailing: SegmentedButton<AppThemeMode>(
-              segments: const [
-                ButtonSegment(value: AppThemeMode.light, icon: Icon(Icons.light_mode, size: 18)),
-                ButtonSegment(value: AppThemeMode.dark, icon: Icon(Icons.dark_mode, size: 18)),
-                ButtonSegment(value: AppThemeMode.system, icon: Icon(Icons.brightness_auto, size: 18)),
-              ],
-              selected: {themeProvider.themeMode},
-              onSelectionChanged: (v) => themeProvider.setThemeMode(v.first),
-              style: SegmentedButton.styleFrom(visualDensity: VisualDensity.compact),
+          ZPanel(style: st, children: [
+            // ---------- 外观主题 ----------
+            ZRow(
+              title: '外观主题',
+              subtitle: '亮色、暗色或跟随系统',
+              style: st,
+              trailing: ZSegmentedCircles<AppThemeMode>(
+                value: themeProvider.themeMode,
+                onChanged: (m) => themeProvider.setThemeMode(m),
+                onSurface: st.titleColor,
+                options: const [
+                  ZCircleOption(value: AppThemeMode.light, icon: Icons.light_mode),
+                  ZCircleOption(value: AppThemeMode.dark, icon: Icons.dark_mode),
+                  ZCircleOption(
+                      value: AppThemeMode.system, icon: Icons.brightness_auto),
+                ],
+              ),
             ),
-          ),
-          const Divider(),
-
-          // ---------- 应用背景（新增） ----------
-          ListTile(
-            leading: const Icon(Icons.wallpaper),
-            title: T('应用背景'),
-            subtitle: Text(
-              _currentBgPath == null 
-                  ? '未设置' 
-                  : S.f('已设置 {0}', [_currentBgType == 'video' ? S.t('视频') : S.t('图片')]),
+            ZDivider(style: st),
+            ZRow(
+              title: '应用背景',
+              subtitle: '选择一张图片或一段视频作为应用背景',
+              style: st,
+              value: _currentBgPath == null
+                  ? S.t('未设置')
+                  : S.f('{0}',
+                      [_currentBgType == 'video' ? S.t('视频') : S.t('图片')]),
+              onTap: _showBackgroundPicker,
             ),
-            trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-            onTap: _showBackgroundPicker,
-          ),
-          // ---------- 视频声音开关 ----------
-          if (_currentBgType == 'video') ...[
-            SwitchListTile(
-              secondary: const Icon(Icons.volume_up),
-              title: T('视频声音'),
-              subtitle: T('开启后背景视频将播放声音'),
-              value: _videoSoundEnabled,
-              onChanged: (value) async {
-                await BackgroundService.setVideoSound(value);
-                setState(() => _videoSoundEnabled = value);
-                // 立即应用到正在播放的背景视频，无需重建图层
-                backgroundWidgetKey.currentState?.applyVideoSound(value);
-              },
+            if (_currentBgType == 'video') ...[
+              ZDivider(style: st),
+              ZRow(
+                title: '视频声音',
+                subtitle: '开启后背景视频将播放声音',
+                style: st,
+                trailing: ZToggle(
+                  value: _videoSoundEnabled,
+                  borderColor: st.subColor,
+                  onChanged: (value) async {
+                    await BackgroundService.setVideoSound(value);
+                    setState(() => _videoSoundEnabled = value);
+                    // 立即应用到正在播放的背景视频，无需重建图层
+                    backgroundWidgetKey.currentState?.applyVideoSound(value);
+                  },
+                ),
+              ),
+            ],
+          ]),
+          const SizedBox(height: 14),
+          ZPanel(style: st, children: [
+            // ---------- 语言 ----------
+            ZRow(
+              title: '语言 / Language',
+              subtitle: '界面显示语言',
+              style: st,
+              value: _languageName(context.watch<LanguageProvider>().mode),
+              onTap: _pickLanguage,
             ),
-          ],
-          const Divider(),
-
-          // ---------- 语言 ----------
-          ListTile(
-            leading: const Icon(Icons.language),
-            title: T('语言 / Language'),
-            subtitle: Text(_languageName(context.watch<LanguageProvider>().mode)),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () => _pickLanguage(),
-          ),
-          const Divider(),
-
-          // ---------- 下载与镜像 ----------
-          ListTile(
-            leading: const Icon(Icons.download_outlined),
-            title: T('下载与镜像设置'),
-            subtitle: T('镜像线路、测速选线、同时下载任务数'),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const DownloadSettingsPage()),
+            ZDivider(style: st),
+            ZRow(
+              title: '下载与镜像设置',
+              subtitle: '镜像线路、测速选线、同时下载任务数',
+              style: st,
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const DownloadSettingsPage()),
+              ),
             ),
-          ),
-          const Divider(),
-
-          // ---------- 服务器日志 ----------
-          ListTile(
-            leading: const Icon(Icons.receipt_long_outlined),
-            title: T('服务器日志'),
-            subtitle: T('通过 SSH 查看服务器 logs 目录日志输出'),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const ServerLogPage()),
+            ZDivider(style: st),
+            ZRow(
+              title: '服务器日志',
+              subtitle: '通过 SSH 查看服务器 logs 目录日志输出',
+              style: st,
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const ServerLogPage()),
+              ),
             ),
-          ),
-          const Divider(),
-
-          // ---------- 使用教程 ----------
-          ListTile(
-            leading: const Icon(Icons.menu_book_outlined),
-            title: T('使用教程'),
-            subtitle: T('如何开启 RCON / SSH、模组管理、下载与终端'),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const HelpPage()),
+          ]),
+          const SizedBox(height: 14),
+          ZPanel(style: st, children: [
+            ZRow(
+              title: '使用教程',
+              subtitle: '如何开启 RCON / SSH、模组管理、下载与终端',
+              style: st,
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const HelpPage()),
+              ),
             ),
-          ),
-          const Divider(),
-
-          // ---------- 用户须知 ----------
-          ListTile(
-            leading: const Icon(Icons.gavel_outlined),
-            title: T('用户须知'),
-            subtitle: T('查看用户守则全部条款'),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () => showDialog(
-              context: context,
-              barrierDismissible: true,
-              builder: (_) => UserAgreementDialog.readView(),
+            ZDivider(style: st),
+            ZRow(
+              title: '用户须知',
+              subtitle: '查看用户守则全部条款',
+              style: st,
+              onTap: () => showDialog(
+                context: context,
+                barrierDismissible: true,
+                builder: (_) => UserAgreementDialog.readView(),
+              ),
             ),
-          ),
-          const Divider(),
-
-          // ---------- 关于软件（检查更新 + 创造者 + 开源许可） ----------
-          ListTile(
-            leading: const Icon(Icons.info_outline),
-            title: T('关于软件'),
-            subtitle: T('版本、检查更新、创造者与开源许可'),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const AboutPage()),
+            ZDivider(style: st),
+            ZRow(
+              title: '关于软件',
+              subtitle: '版本、检查更新、创造者与开源许可',
+              style: st,
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const AboutPage()),
+              ),
             ),
-          ),
+          ]),
         ],
       ),
     );

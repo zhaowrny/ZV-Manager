@@ -8,6 +8,7 @@ import '../../core/services/ssh_shell_service.dart';
 import '../../providers/server_provider.dart';
 import '../../core/l10n/strings.dart';
 import '../../core/widgets/empty_state_page.dart';
+import '../../core/widgets/z_widgets.dart';
 
 
 /// SSH 终端页：xterm 终端 + 快捷键栏 + 多服务器会话标签（M3）。
@@ -92,7 +93,7 @@ class _TerminalPageState extends State<TerminalPage>
     final active = _sessions[_activeId];
     return Scaffold(
       backgroundColor: hasWallpaper ? Colors.transparent : null,
-      appBar: AppBar(
+      appBar: ZAppBar(
         title: T('终端'),
         actions: [
           PopupMenuButton<ServerConfig>(
@@ -112,14 +113,17 @@ class _TerminalPageState extends State<TerminalPage>
                   height: 44,
                   child: ListView(
                     scrollDirection: Axis.horizontal,
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
                     children: _sessions.values.map((s) {
                       final selected = s.server.id == _activeId;
                       return Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
-                        child: ChoiceChip(
-                          label: Text(s.server.name),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 4, vertical: 6),
+                        child: _SessionTab(
+                          label: s.server.name,
                           selected: selected,
-                          onSelected: (_) => setState(() => _activeId = s.server.id),
+                          onTap: () =>
+                              setState(() => _activeId = s.server.id),
                         ),
                       );
                     }).toList(),
@@ -128,7 +132,18 @@ class _TerminalPageState extends State<TerminalPage>
               ),
       ),
       body: active == null
-          ? const Center(child: T('选择一台服务器开始会话'))
+          ? Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.terminal_rounded,
+                      size: 36,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant),
+                  const SizedBox(height: 12),
+                  T('选择一台服务器开始会话'),
+                ],
+              ),
+            )
           : Column(
               children: [
                 Expanded(
@@ -150,7 +165,10 @@ class _TerminalPageState extends State<TerminalPage>
   Widget _buildQuickBar() {
     return Container(
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surfaceContainerHighest.withOpacity(0.5),
+        color: Theme.of(context).colorScheme.surfaceContainerHigh.withOpacity(0.5),
+        border: Border(
+          top: BorderSide(color: Theme.of(context).colorScheme.outlineVariant),
+        ),
       ),
       child: SafeArea(
         child: SizedBox(
@@ -179,11 +197,71 @@ class _TerminalPageState extends State<TerminalPage>
   /// 生成一个快捷按键按钮。
   /// [data] 是实际写入终端的字节（含控制字符或带换行的整条命令）。
   Widget _key(String label, String data) {
+    final scheme = Theme.of(context).colorScheme;
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 4),
-      child: ActionChip(
-        label: Text(label),
-        onPressed: () => _sendKey(data),
+      padding: const EdgeInsets.symmetric(horizontal: 3),
+      child: Center(
+        child: GestureDetector(
+          onTap: () => _sendKey(data),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+            decoration: BoxDecoration(
+              color: scheme.surfaceContainerHighest,
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Text(
+              label,
+              style: TextStyle(
+                fontFamily: 'monospace',
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: scheme.onSurface,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// 终端会话切换标签：选中的用品牌色填充，未选中为透明描边。
+class _SessionTab extends StatelessWidget {
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _SessionTab({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 6),
+        decoration: BoxDecoration(
+          color: selected ? kZAccent : Colors.transparent,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(
+            color: selected ? kZAccent : scheme.outlineVariant,
+          ),
+        ),
+        child: Center(
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: 12.5,
+              fontWeight: FontWeight.w600,
+              color: selected ? Colors.white : scheme.onSurfaceVariant,
+            ),
+          ),
+        ),
       ),
     );
   }

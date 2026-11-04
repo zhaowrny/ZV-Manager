@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../core/l10n/strings.dart';
+import '../widgets/z_widgets.dart';
 
 /// 统一的「需要先选服务器 / 未配置」引导空状态页。
 /// 自带 AppBar 标题栏，避免页面看起来空白、引导文字无处安放。
@@ -24,7 +25,7 @@ class EmptyStatePage extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Scaffold(
-      appBar: AppBar(title: T(title)),
+      appBar: ZAppBar(title: T(title)),
       body: Center(
         child: Padding(
           padding: const EdgeInsets.all(32),

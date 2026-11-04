@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../mod_manager/mod_provider.dart';
 import '../../core/l10n/strings.dart';
+import '../../core/widgets/z_widgets.dart';
 
 /// 模组详情页：展示 jar 元数据（名称 / 版本 / 作者 / 依赖 / 描述）。
 class ModDetailPage extends StatelessWidget {
@@ -13,15 +14,19 @@ class ModDetailPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final meta = file.meta;
     return Scaffold(
-      appBar: AppBar(title: Text(file.fileName)),
+      appBar: ZAppBar(title: Text(file.fileName)),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          ListTile(
-            leading: const Icon(Icons.extension),
-            title: Text(meta.name ?? S.t('未知名称'),
-                style: Theme.of(context).textTheme.titleLarge),
-            subtitle: Text(S.f('版本 {0}', [meta.version ?? '未知'])),
+          ZPanel(
+            style: ZStyle.of(context, hasWallpaper: false),
+            children: [
+              ZSheetRow(
+                icon: Icons.extension,
+                title: meta.name ?? S.t('未知名称'),
+                subtitle: S.f('版本 {0}', [meta.version ?? '未知']),
+              ),
+            ],
           ),
           const Divider(),
           _kv('文件名', file.fileName),

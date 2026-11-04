@@ -4,6 +4,7 @@ import '../../core/services/dependency_index_service.dart';
 import '../../providers/download_provider.dart';
 import '../../providers/server_provider.dart';
 import '../../core/l10n/strings.dart';
+import '../../core/widgets/z_widgets.dart';
 
 /// 依赖仓库页：服务器本地仓库增量同步 + 依赖树查询 + 缺失依赖一键补齐 + 重复检测。
 class DependencyTreePage extends StatefulWidget {
@@ -73,28 +74,26 @@ class _DependencyTreePageState extends State<DependencyTreePage> {
                 style: Theme.of(context).textTheme.titleMedium),
             const Divider(),
             T('该模组依赖：'),
-            ...tree.dependsOn.map((m) => ListTile(
-                  dense: true,
-                  leading: const Icon(Icons.link, size: 18),
-                  title: Text('${m.name ?? m.fileName} ${m.version ?? ''}'),
+            ...tree.dependsOn.map((m) => ZSheetRow(
+                  icon: Icons.link,
+                  title: '${m.name ?? m.fileName} ${m.version ?? ''}',
                 )),
             if (tree.dependsOn.isEmpty) T('无', style: TextStyle(color: Colors.grey)),
             const SizedBox(height: 8),
             T('被以下模组依赖：'),
-            ...tree.dependents.map((m) => ListTile(
-                  dense: true,
-                  leading: const Icon(Icons.link, size: 18),
-                  title: Text('${m.name ?? m.fileName} ${m.version ?? ''}'),
+            ...tree.dependents.map((m) => ZSheetRow(
+                  icon: Icons.link,
+                  title: '${m.name ?? m.fileName} ${m.version ?? ''}',
                 )),
             if (tree.dependents.isEmpty) T('无', style: TextStyle(color: Colors.grey)),
             if (tree.missing.isNotEmpty) ...[
               const SizedBox(height: 8),
               T('缺失依赖（可一键补齐）：',
                   style: TextStyle(color: Colors.red, fontWeight: FontWeight.w600)),
-              ...tree.missing.map((d) => ListTile(
-                    dense: true,
-                    leading: const Icon(Icons.warning_amber_rounded, color: Colors.red, size: 20),
-                    title: Text(d),
+              ...tree.missing.map((d) => ZSheetRow(
+                    icon: Icons.warning_amber_rounded,
+                    danger: true,
+                    title: d,
                     trailing: TextButton(
                       onPressed: () => _fetchMissing(d),
                       child: T('从 Modrinth 补齐'),
@@ -148,10 +147,10 @@ class _DependencyTreePageState extends State<DependencyTreePage> {
                       style: const TextStyle(color: Colors.orange, fontWeight: FontWeight.w600)),
                   subtitle: Text(S.f('{0} 个版本共存', [g.items.length])),
                   children: g.items
-                      .map((m) => ListTile(
-                            dense: true,
-                            title: Text(m.fileName),
-                            subtitle: Text('${m.version ?? S.t('未知')} · ${m.remotePath}'),
+                      .map((m) => ZSheetRow(
+                            icon: Icons.description_outlined,
+                            title: m.fileName,
+                            subtitle: '${m.version ?? S.t('未知')} · ${m.remotePath}',
                           ))
                       .toList(),
                 )),
@@ -164,7 +163,7 @@ class _DependencyTreePageState extends State<DependencyTreePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
+      appBar: ZAppBar(
         title: T('依赖仓库'),
         actions: [
           IconButton(
@@ -215,13 +214,10 @@ class _DependencyTreePageState extends State<DependencyTreePage> {
                         itemCount: _mods!.length,
                         itemBuilder: (context, i) {
                           final m = _mods![i];
-                          return ListTile(
-                            leading: const Icon(Icons.inventory_2_outlined),
-                            title: Text('${m.name ?? m.fileName} ${m.version ?? ''}'),
-                            subtitle: Text(
-                              S.f('{0} · 依赖 {1} · 软依赖 {2}', [m.fileName, m.depends.length, m.softDepends.length]),
-                            ),
-                            trailing: const Icon(Icons.account_tree_outlined),
+                          return ZSheetRow(
+                            icon: Icons.inventory_2_outlined,
+                            title: '${m.name ?? m.fileName} ${m.version ?? ''}',
+                            subtitle: S.f('{0} · 依赖 {1} · 软依赖 {2}', [m.fileName, m.depends.length, m.softDepends.length]),
                             onTap: () => _showTree(m),
                           );
                         },

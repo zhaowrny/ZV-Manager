@@ -25,6 +25,28 @@ class MirrorService extends ChangeNotifier {
     return builtinMirrors[_current] ?? _current;
   }
 
+  /// 当前镜像的 API base（含 scheme、无尾斜杠），供请求 baseUrl 使用。
+  ///
+  /// 仅替换 host，路径与查询串由调用方保持原样，避免与 queryParameters 二次拼接。
+  /// MCIM 现行规则：Modrinth API 为 `mod.mcimirror.top/modrinth`（带 /modrinth 前缀），
+  /// 请求路径 `/v2/search` 会拼成 `.../modrinth/v2/search`。
+  String get apiBase {
+    switch (_current) {
+      case 'official':
+        return 'https://api.modrinth.com';
+      case 'mcim':
+        return 'https://mod.mcimirror.top/modrinth';
+      case 'custom':
+        if (_customUrl.isEmpty) return 'https://api.modrinth.com';
+        final trimmed = _customUrl.endsWith('/')
+            ? _customUrl.substring(0, _customUrl.length - 1)
+            : _customUrl;
+        return trimmed;
+      default:
+        return 'https://api.modrinth.com';
+    }
+  }
+
   Future<void> load() async {
     final prefs = await SharedPreferences.getInstance();
     _current = prefs.getString(_prefKey) ?? 'mcim';
@@ -43,9 +65,10 @@ class MirrorService extends ChangeNotifier {
 
 /// 把 Modrinth 官方域名改写为镜像域名。
   ///
-  /// 镜像规则：
-  /// - MCIM：api.modrinth.com → modrinth-api.mcimirror.top
-  ///         cdn.modrinth.com → modrinth-cdn.mcimirror.top
+  /// 镜像规则（MCIM 官方 2026 现行规则，已核对 docs.mcimirror.top）：
+  /// - MCIM：api.modrinth.com/v2/... → mod.mcimirror.top/modrinth/v2/...（带前缀）
+  ///         cdn.modrinth.com/...     → mod.mcimirror.top/...（仅换 host）
+  ///         旧的 modrinth-api.mcimirror.top / modrinth-cdn.mcimirror.top 已废弃、DNS 无法解析
   /// - official：原样返回
   /// - custom：以自定义 base 替换 scheme/host，保留路径与查询串
   String rewrite(String url) {
@@ -62,13 +85,16 @@ class MirrorService extends ChangeNotifier {
       }
       return url;
     }
-    // MCIM
-    final newHost = uri.host == 'api.modrinth.com'
-        ? 'modrinth-api.mcimirror.top'
-        : uri.host == 'cdn.modrinth.com'
-            ? 'modrinth-cdn.mcimirror.top'
-            : uri.host;
-    return uri.replace(host: newHost).toString();
+    // MCIM：API 需加 /modrinth 路径前缀，CDN 仅换 host
+    if (uri.host == 'api.modrinth.com') {
+      return uri
+          .replace(host: 'mod.mcimirror.top', path: '/modrinth${uri.path}')
+          .toString();
+    }
+    if (uri.host == 'cdn.modrinth.com') {
+      return uri.replace(host: 'mod.mcimirror.top').toString();
+    }
+    return url;
   }
 
   /// 测速：对镜像的 api 域名发 HEAD 请求，返回毫秒数；失败返回 -1。
@@ -78,7 +104,7 @@ class MirrorService extends ChangeNotifier {
   Future<int> speedTest(String mirrorId) async {
     final String probe = switch (mirrorId) {
       'official' => 'https://api.modrinth.com/v2/project/sodium/version?limit=1',
-      'mcim' => 'https://modrinth-api.mcimirror.top/v2/project/sodium/version?limit=1',
+      'mcim' => 'https://mod.mcimirror.top/modrinth/v2/project/sodium/version?limit=1',
       _ => _customUrl,
     };
     if (probe.isEmpty) return -1;

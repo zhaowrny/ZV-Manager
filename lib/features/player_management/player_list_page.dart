@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../core/utils/rcon_client.dart';
+import '../../core/widgets/z_widgets.dart';
+import '../../providers/wallpaper_provider.dart';
 import 'player_service.dart';
 import '../../core/l10n/strings.dart';
 
@@ -192,8 +195,11 @@ class _PlayerListPageState extends State<PlayerListPage> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final hasWallpaper = context.watch<WallpaperProvider>().hasWallpaper;
     return Scaffold(
-      appBar: AppBar(
+      backgroundColor: hasWallpaper ? Colors.transparent : null,
+      appBar: ZAppBar(
+        backgroundColor: hasWallpaper ? Colors.transparent : null,
         leading: _selecting
             ? IconButton(
                 icon: const Icon(Icons.close),
@@ -226,7 +232,7 @@ class _PlayerListPageState extends State<PlayerListPage> {
           ),
         ],
       ),
-      body: _buildBody(theme),
+      body: _buildBody(theme, hasWallpaper),
       bottomNavigationBar: _selecting ? _buildBatchBar(theme) : null,
     );
   }
@@ -268,73 +274,174 @@ class _PlayerListPageState extends State<PlayerListPage> {
     );
   }
 
-  Widget _buildBody(ThemeData theme) {
+  Widget _buildBody(ThemeData theme, bool hasWallpaper) {
+    final st = ZStyle.of(context, hasWallpaper: hasWallpaper);
     if (_loading) {
       return const Center(child: CircularProgressIndicator());
     }
     if (_error != null) {
       return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(S.f('加载失败：{0}', [_error.toString()]), textAlign: TextAlign.center),
-            const SizedBox(height: 12),
-            FilledButton(onPressed: _load, child: T('重试')),
-          ],
+        child: Padding(
+          padding: const EdgeInsets.all(28),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.cloud_off_outlined, size: 40, color: st.subColor),
+              const SizedBox(height: 14),
+              Text(
+                S.f('加载失败：{0}', [_error.toString()]),
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 13, height: 1.5, color: st.subColor),
+              ),
+              const SizedBox(height: 16),
+              FilledButton.tonal(onPressed: _load, child: T('重试')),
+            ],
+          ),
         ),
       );
     }
     final players = _players ?? [];
     if (players.isEmpty) {
-      return Center(child: T('暂无在线玩家', style: theme.textTheme.bodyLarge));
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.group_outlined, size: 40, color: st.subColor),
+            const SizedBox(height: 12),
+            Text(S.t('暂无在线玩家'),
+                style: TextStyle(fontSize: 13, color: st.subColor)),
+            const SizedBox(height: 16),
+            FilledButton.tonal(onPressed: _load, child: T('刷新')),
+          ],
+        ),
+      );
     }
     return RefreshIndicator(
       onRefresh: _load,
-      child: ListView.separated(
-        padding: const EdgeInsets.all(12),
-        itemCount: players.length,
-        separatorBuilder: (_, __) => const SizedBox(height: 8),
-        itemBuilder: (_, i) {
-          final p = players[i];
-          final selected = _selected.contains(p.name);
-          return ListTile(
-            leading: _selecting
-                ? Checkbox(
-                    value: selected,
-                    onChanged: (_) => _toggleSelect(p.name),
-                  )
-                : CircleAvatar(
-                    child: Text(p.name.isNotEmpty ? p.name[0].toUpperCase() : '?'),
+      child: ListView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.fromLTRB(16, 10, 16, 24),
+        children: [
+          // 顶部统计条
+          Padding(
+            padding: const EdgeInsets.only(bottom: 12, left: 6),
+            child: Row(
+              children: [
+                Text(
+                  S.f('在线玩家 {0} 人', [players.length]),
+                  style: TextStyle(
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w700,
+                    color: st.subColor,
                   ),
-            title: Text(p.name, style: theme.textTheme.titleMedium),
-            subtitle: p.uuid.isEmpty ? null : Text(p.uuid, style: theme.textTheme.bodySmall),
-            selected: selected,
-            onTap: _selecting ? () => _toggleSelect(p.name) : null,
-            trailing: _selecting
-                ? const SizedBox.shrink()
-                : Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      if (p.isOp)
-                        Chip(
-                          label: const Text('OP'),
-                          visualDensity: VisualDensity.compact,
-                        ),
-                      PopupMenuButton<String>(
-                        tooltip: S.t('操作'),
-                        onSelected: (action) => _handleAction(p, action),
-                        itemBuilder: (_) => [
-                          const PopupMenuItem(value: 'op', child: T('给予 OP')),
-                          const PopupMenuItem(value: 'deop', child: T('取消 OP')),
-                          const PopupMenuItem(value: 'kick', child: T('踢出')),
-                          const PopupMenuItem(value: 'ban', child: T('封禁')),
-                        ],
-                      ),
-                    ],
+                ),
+                const Spacer(),
+                if (_selecting)
+                  Text(
+                    S.f('已选 {0} 人', [_selected.length]),
+                    style: const TextStyle(
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w700,
+                      color: kZAccent,
+                    ),
                   ),
-          );
-        },
+              ],
+            ),
+          ),
+          // 玩家列表：整块圆角面板，行内用勾选钮表达选中状态
+          ZPanel(style: st, children: [
+            for (var i = 0; i < players.length; i++) ...[
+              if (i > 0) ZDivider(style: st),
+              _PlayerRow(
+                style: st,
+                player: players[i],
+                selecting: _selecting,
+                selected: _selected.contains(players[i].name),
+                onToggle: () => _toggleSelect(players[i].name),
+                onAction: (a) => _handleAction(players[i], a),
+              ),
+            ],
+          ]),
+        ],
       ),
+    );
+  }
+}
+
+/// 单个玩家行：头像/勾选钮 + 名字 + UUID + OP 标记 / 操作菜单。
+class _PlayerRow extends StatelessWidget {
+  final ZStyle style;
+  final PlayerInfo player;
+  final bool selecting;
+  final bool selected;
+  final VoidCallback onToggle;
+  final ValueChanged<String> onAction;
+
+  const _PlayerRow({
+    required this.style,
+    required this.player,
+    required this.selecting,
+    required this.selected,
+    required this.onToggle,
+    required this.onAction,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final avatar = Container(
+      width: 38,
+      height: 38,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: style.scheme.primary.withOpacity(0.16),
+      ),
+      alignment: Alignment.center,
+      child: Text(
+        player.name.isNotEmpty ? player.name[0].toUpperCase() : '?',
+        style: TextStyle(
+          fontSize: 15,
+          fontWeight: FontWeight.w700,
+          color: style.scheme.primary,
+        ),
+      ),
+    );
+
+    return ZRow(
+      style: style,
+      title: player.name,
+      subtitle: player.uuid.isEmpty ? null : player.uuid,
+      leading: selecting
+          ? ZToggle(
+              value: selected,
+              size: 34,
+              borderColor: style.subColor,
+              onChanged: (_) => onToggle(),
+            )
+          : avatar,
+      onTap: selecting ? onToggle : null,
+      trailing: selecting
+          ? null
+          : Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (player.isOp) ...[
+                  ZBadge(label: 'OP', color: kZAccent),
+                  const SizedBox(width: 2),
+                ],
+                PopupMenuButton<String>(
+                  tooltip: S.t('操作'),
+                  icon: Icon(Icons.more_vert,
+                      size: 20, color: style.subColor),
+                  onSelected: onAction,
+                  itemBuilder: (_) => const [
+                    PopupMenuItem(value: 'op', child: T('给予 OP')),
+                    PopupMenuItem(value: 'deop', child: T('取消 OP')),
+                    PopupMenuItem(value: 'kick', child: T('踢出')),
+                    PopupMenuItem(value: 'ban', child: T('封禁')),
+                  ],
+                ),
+              ],
+            ),
     );
   }
 }

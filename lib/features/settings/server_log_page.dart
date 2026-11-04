@@ -4,6 +4,8 @@ import 'package:provider/provider.dart';
 import '../../core/services/sftp_service.dart';
 import '../../core/l10n/strings.dart';
 import '../../providers/server_provider.dart';
+import '../../providers/wallpaper_provider.dart';
+import '../../core/widgets/z_widgets.dart';
 import '../dashboard/server_picker_bar.dart';
 
 /// 服务器日志页（设置内入口）：通过 SFTP 读取服务器 logs 目录，
@@ -157,108 +159,163 @@ class _ServerLogPageState extends State<ServerLogPage> {
   @override
   Widget build(BuildContext context) {
     final servers = context.watch<ServerProvider>().servers;
+    final hasWallpaper = context.watch<WallpaperProvider>().hasWallpaper;
+    final st = ZStyle.of(context, hasWallpaper: hasWallpaper);
+
     return Scaffold(
-      appBar: AppBar(title: T('服务器日志')),
+      backgroundColor: hasWallpaper ? Colors.transparent : null,
+      appBar: ZAppBar(
+        title: T('服务器日志'),
+        backgroundColor: hasWallpaper ? Colors.transparent : null,
+      ),
       body: Column(
         children: [
+          // ---------- 顶部：服务器 + 路径 + 自动刷新 ----------
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-            child: DropdownButtonFormField<ServerConfig>(
-              value: _server != null && servers.any((s) => s.id == _server!.id)
-                  ? _server
-                  : null,
-              decoration: InputDecoration(
-                labelText: S.t('选择服务器（需开启 SSH）'),
-                border: const OutlineInputBorder(),
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+            child: ZPanel(style: st, children: [
+              ZRow(
+                title: '服务器',
+                subtitle: _server == null
+                    ? S.t('请选择一台已配置 SSH 的服务器')
+                    : '${_server!.name}  ·  ${_server!.sshUser}@${_server!.host}',
+                style: st,
+                leading: Icon(Icons.dns_outlined, size: 20, color: st.subColor),
+                trailing: DropdownButton<String>(
+                  value: _server != null && servers.any((s) => s.id == _server!.id)
+                      ? _server!.id
+                      : null,
+                  underline: const SizedBox.shrink(),
+                  borderRadius: BorderRadius.circular(12),
+                  hint: T('选择'),
+                  items: servers
+                      .map((s) => DropdownMenuItem(
+                            value: s.id,
+                            child: SizedBox(
+                              width: 110,
+                              child: Text(s.name,
+                                  overflow: TextOverflow.ellipsis,
+                                  textAlign: TextAlign.right),
+                            ),
+                          ))
+                      .toList(),
+                  onChanged: (id) {
+                    final s = servers.where((e) => e.id == id).firstOrNull;
+                    setState(() {
+                      _server = s;
+                      _files = [];
+                      _error = null;
+                      _pathCtrl.text = _defaultLogsDir(s);
+                    });
+                  },
+                ),
               ),
-              items: servers
-                  .map((s) => DropdownMenuItem(value: s, child: Text(s.name)))
-                  .toList(),
-              onChanged: (s) {
-                setState(() {
-                  _server = s;
-                  _files = [];
-                  _error = null;
-                  _pathCtrl.text = _defaultLogsDir(s);
-                });
-              },
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-            child: Row(
-              children: [
-                Expanded(
+              ZDivider(style: st),
+              ZRow(
+                title: '日志目录',
+                subtitle: '默认按 SSH 用户推导，可手动修改',
+                style: st,
+                leading: Icon(Icons.folder_outlined, size: 20, color: st.subColor),
+                trailing: SizedBox(
+                  width: 150,
                   child: TextField(
                     controller: _pathCtrl,
+                    textAlign: TextAlign.right,
+                    style: const TextStyle(fontFamily: 'monospace', fontSize: 12),
                     decoration: InputDecoration(
-                      labelText: S.t('日志目录路径'),
                       hintText: S.t('例如 /root/logs'),
-                      border: const OutlineInputBorder(),
+                      hintStyle: TextStyle(fontSize: 12, color: st.subColor),
+                      border: InputBorder.none,
+                      isDense: true,
                     ),
                   ),
                 ),
-                const SizedBox(width: 8),
-                IconButton.filled(
-                  onPressed: _loading ? null : _refresh,
-                  tooltip: S.t('刷新'),
-                  icon: const Icon(Icons.refresh),
+              ),
+              ZDivider(style: st),
+              ZRow(
+                title: '自动刷新',
+                subtitle: '每 5 秒重新读取目录列表',
+                style: st,
+                leading: Icon(Icons.autorenew, size: 20, color: st.subColor),
+                trailing: ZToggle(
+                  value: _autoRefresh,
+                  size: 40,
+                  borderColor: st.subColor,
+                  onChanged: _toggleAuto,
                 ),
-              ],
-            ),
+              ),
+            ]),
           ),
-          SwitchListTile(
-            title: T('自动刷新（每 5 秒）'),
-            value: _autoRefresh,
-            onChanged: _toggleAuto,
-          ),
-          const Divider(height: 1),
-          Expanded(child: _buildList()),
+          // ---------- 文件列表 ----------
+          Expanded(child: _buildList(st)),
         ],
       ),
     );
   }
 
-  Widget _buildList() {
+  /// 日志文件列表：整块一个圆角面板，文件行之间用细线分隔。
+  Widget _buildList(ZStyle st) {
     if (_loading && _files.isEmpty) {
       return const Center(child: CircularProgressIndicator());
     }
     if (_error != null) {
       return Center(
         child: Padding(
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.all(28),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text(_error!, textAlign: TextAlign.center),
-              const SizedBox(height: 12),
-              FilledButton(onPressed: _refresh, child: T('重试')),
+              Icon(Icons.cloud_off_outlined, size: 40, color: st.subColor),
+              const SizedBox(height: 14),
+              Text(_error!,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 13, height: 1.5, color: st.subColor)),
+              const SizedBox(height: 16),
+              FilledButton.tonal(onPressed: _refresh, child: T('重试')),
             ],
           ),
         ),
       );
     }
     if (_files.isEmpty) {
-      return Center(child: T('目录下没有日志文件'));
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.description_outlined, size: 40, color: st.subColor),
+            const SizedBox(height: 12),
+            Text(S.t('目录下没有日志文件'),
+                style: TextStyle(fontSize: 13, color: st.subColor)),
+            const SizedBox(height: 16),
+            FilledButton.tonal(
+              onPressed: _loading ? null : _refresh,
+              child: T('刷新'),
+            ),
+          ],
+        ),
+      );
     }
     return RefreshIndicator(
       onRefresh: _refresh,
-      child: ListView.builder(
+      child: ListView(
         physics: const AlwaysScrollableScrollPhysics(),
-        itemCount: _files.length,
-        itemBuilder: (_, i) {
-          final f = _files[i];
-          return ListTile(
-            leading: const Icon(Icons.description_outlined),
-            title: Text(f.name, overflow: TextOverflow.ellipsis),
-            subtitle: Text(
-              '${_fmtSize(f.size)} · ${f.mtime.toLocal()}',
-              overflow: TextOverflow.ellipsis,
-            ),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () => _viewFile(f),
-          );
-        },
+        padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+        children: [
+          ZPanel(style: st, children: [
+            for (var i = 0; i < _files.length; i++) ...[
+              if (i > 0) ZDivider(style: st),
+              ZRow(
+                title: _files[i].name,
+                subtitle: '${_fmtSize(_files[i].size)} · '
+                    '${_files[i].mtime.toLocal().toString().substring(0, 19)}',
+                style: st,
+                leading: Icon(Icons.description_outlined,
+                    size: 20, color: st.subColor),
+                onTap: () => _viewFile(_files[i]),
+              ),
+            ],
+          ]),
+        ],
       ),
     );
   }
@@ -342,7 +399,7 @@ class _LogViewerPageState extends State<_LogViewerPage> {
   Widget build(BuildContext context) {
     final lines = _content.split('\n');
     return Scaffold(
-      appBar: AppBar(
+      appBar: ZAppBar(
         title: Text(widget.title, overflow: TextOverflow.ellipsis),
         actions: [
           IconButton(
@@ -352,10 +409,36 @@ class _LogViewerPageState extends State<_LogViewerPage> {
           ),
         ],
       ),
-      bottomNavigationBar: SwitchListTile(
-        title: T('自动刷新并跟随底部（每 5 秒）'),
-        value: _autoRefresh,
-        onChanged: _toggleAuto,
+      // 底部工具条：自动刷新开关 + 回到底部，两者都是长日志场景的高频操作
+      bottomNavigationBar: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 4, 16, 10),
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  S.t('自动刷新并跟随底部（每 5 秒）'),
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ),
+              TextButton.icon(
+                onPressed: _jumpBottom,
+                icon: const Icon(Icons.vertical_align_bottom, size: 18),
+                label: T('底部'),
+              ),
+              const SizedBox(width: 6),
+              ZToggle(
+                value: _autoRefresh,
+                size: 40,
+                borderColor: Theme.of(context).colorScheme.onSurfaceVariant,
+                onChanged: _toggleAuto,
+              ),
+            ],
+          ),
+        ),
       ),
       body: NotificationListener<ScrollNotification>(
         onNotification: (n) {
@@ -367,10 +450,14 @@ class _LogViewerPageState extends State<_LogViewerPage> {
         },
         child: SingleChildScrollView(
           controller: _controller,
-          padding: const EdgeInsets.all(12),
+          padding: const EdgeInsets.all(14),
           child: SelectableText(
             lines.join('\n'),
-            style: const TextStyle(fontFamily: 'monospace', fontSize: 12),
+            style: const TextStyle(
+              fontFamily: 'monospace',
+              fontSize: 12,
+              height: 1.45,
+            ),
           ),
         ),
       ),

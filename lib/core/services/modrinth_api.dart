@@ -15,14 +15,55 @@ class ModrinthApi {
     ));
     d.interceptors.add(InterceptorsWrapper(
       onRequest: (options, handler) {
-        // 镜像改写：api.modrinth.com / cdn.modrinth.com → 镜像节点
-        options.path = mirror.rewrite(options.uri.toString());
+        // 镜像改写：仅替换 base（host + 可选路径前缀），路径与查询串保持原样。
+        // 原实现把整串写回 options.path，因当时 baseUrl 为空、uri 无 host，
+        // 最终拼成 ///v2/... 报 "No host specified"；且整串回写会与 queryParameters 二次拼接。
+        options.baseUrl = mirror.apiBase;
         // Modrinth 要求标明客户端身份，否则可能被限流
         options.headers['User-Agent'] = 'ZVManager/2.0 (gitee.com/driftinblock/zvmanager)';
         handler.next(options);
       },
     ));
     return d;
+  }
+
+  /// 官方源 Dio（不经镜像拦截器），用于镜像连接失败时兜底重试。
+  Dio get _officialDio => Dio(BaseOptions(
+        baseUrl: 'https://api.modrinth.com',
+        connectTimeout: const Duration(seconds: 15),
+        receiveTimeout: const Duration(seconds: 30),
+        headers: {'User-Agent': 'ZVManager/2.0 (gitee.com/driftinblock/zvmanager)'},
+      ));
+
+  /// 统一 GET：按当前镜像请求；若镜像出现连接层故障（DNS 失效/超时/拒连），
+  /// 自动回退 Modrinth 官方源重试一次。MCIM 为第三方镜像，域名与可用性可能变化，
+  /// 此兜底保证单点故障不会让搜索直接失败。
+  Future<Response> _get(String path, {Map<String, dynamic>? queryParameters}) async {
+    try {
+      return await _dio.get(path, queryParameters: queryParameters);
+    } on DioException catch (e) {
+      if (mirror.currentId == 'official' || !_isConnectionFailure(e)) rethrow;
+      return await _officialDio.get(path, queryParameters: queryParameters);
+    }
+  }
+
+  /// 判断是否为「连接层」故障（而非 4xx/5xx 业务响应），仅这类才值得回退。
+  /// 不引入 dart:io，改用字符串匹配 SocketException 关键字，保证 Web 构建也可用。
+  bool _isConnectionFailure(DioException e) {
+    switch (e.type) {
+      case DioExceptionType.connectionError:
+      case DioExceptionType.connectionTimeout:
+      case DioExceptionType.sendTimeout:
+      case DioExceptionType.receiveTimeout:
+        return true;
+      case DioExceptionType.unknown:
+        final s = '${e.error} ${e.message}';
+        return s.contains('SocketException') ||
+            s.contains('Failed host lookup') ||
+            s.contains('No address associated');
+      default:
+        return false;
+    }
   }
 
   /// 搜索项目。facets 例：[["versions:1.20.1"], ["categories:fabric"], ["project_type:mod"]]
@@ -41,7 +82,7 @@ class ModrinthApi {
     ];
     if (mcVersion != null && mcVersion.isNotEmpty) facets.add(['versions:$mcVersion']);
     if (loader != null && loader.isNotEmpty) facets.add(['categories:$loader']);
-    final resp = await _dio.get('/v2/search', queryParameters: {
+    final resp = await _get('/v2/search', queryParameters: {
       'query': query,
       'limit': limit,
       'facets': facets,
@@ -52,7 +93,7 @@ class ModrinthApi {
 
   /// 获取项目最新兼容版本列表（按日期倒序）。
   Future<List<ModrinthVersion>> versions(String projectId) async {
-    final resp = await _dio.get('/v2/project/$projectId/version');
+    final resp = await _get('/v2/project/$projectId/version');
     final list = (resp.data as List).map((e) => ModrinthVersion.fromJson(e)).toList();
     list.sort((a, b) => b.datePublished.compareTo(a.datePublished));
     return list;
@@ -60,7 +101,7 @@ class ModrinthApi {
 
   /// 项目详情（用于依赖信息）。
   Future<Map<String, dynamic>> project(String idOrSlug) async {
-    final resp = await _dio.get('/v2/project/$idOrSlug');
+    final resp = await _get('/v2/project/$idOrSlug');
     return Map<String, dynamic>.from(resp.data);
   }
 }

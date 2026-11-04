@@ -1,25 +1,22 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import '../../core/l10n/strings.dart';
 
-/// 软件更新信息，由 Gitee 发布接口的 tag_name 与 assets 解析而来
-class UpdateInfo {
-  final String latestVersion;
-  final String downloadUrl;
-  final String apkName;
-  const UpdateInfo({
-    required this.latestVersion,
-    required this.downloadUrl,
-    required this.apkName,
-  });
-}
+import '../l10n/strings.dart';
+import '../widgets/update_dialog.dart';
+import 'update_info.dart';
+
+export 'update_info.dart';
 
 /// 更新检查与安装服务：负责从 Gitee 拉取发布信息、下载并调起系统安装器。
 class UpdateService {
   const UpdateService._();
+
+  /// Gitee 仓库地址
+  static const _repoUrl = 'https://gitee.com/driftinblock/zvmanager';
 
   /// Gitee 仓库最新发布信息地址
   static const _updateInfoUrl =
@@ -59,31 +56,87 @@ class UpdateService {
       final json = jsonDecode(body) as Map<String, dynamic>;
       // Gitee 发布接口的 tag_name 形如 "v1.3.0"，去掉开头的 "v" 用于版本号对比
       final tag = json['tag_name'] as String? ?? '';
-      final latestVersion = tag.startsWith('v') ? tag.substring(1) : tag;
+      final latestVersion =
+          tag.startsWith('v') || tag.startsWith('V') ? tag.substring(1) : tag;
+      if (latestVersion.isEmpty) return null;
 
       // 从 assets 中筛选 APK 安装包，取其直链与文件名
       String downloadUrl = '';
       String apkName = '';
       final assets = json['assets'] as List<dynamic>? ?? [];
       for (final item in assets) {
-        final name = (item as Map<String, dynamic>)['name'] as String? ?? '';
+        final asset = item as Map<String, dynamic>;
+        final name = asset['name'] as String? ?? '';
         if (name.endsWith('.apk')) {
-          downloadUrl = (item['browser_download_url'] as String? ??
-              item['download_url'] as String? ??
+          downloadUrl = (asset['browser_download_url'] as String? ??
+              asset['download_url'] as String? ??
               '');
           apkName = name;
           break;
         }
       }
 
+      final htmlUrl = json['html_url'] as String? ?? '';
+      final releasePageUrl = htmlUrl.isNotEmpty
+          ? htmlUrl
+          : (tag.isEmpty
+              ? '$_repoUrl/releases'
+              : '$_repoUrl/releases/tag/${Uri.encodeComponent(tag)}');
+
       return UpdateInfo(
         latestVersion: latestVersion,
         downloadUrl: downloadUrl,
         apkName: apkName,
+        releaseNotes: json['body'] as String? ?? '',
+        releasedAt: DateTime.tryParse(json['created_at'] as String? ?? ''),
+        releasePageUrl: releasePageUrl,
       );
     } finally {
       client.close();
     }
+  }
+
+  /// 判断 [latest] 是否比 [current] 新。只有新版本更高时才返回 true，
+  /// 避免当前版本高于 Gitee 发布版本时误提示更新并引导降级。
+  static bool isNewerVersion(String latest, String current) {
+    if (latest.trim().isEmpty) return false;
+
+    final latestParts = _parseVersion(latest);
+    final currentParts = _parseVersion(current);
+    if (latestParts == null || currentParts == null) {
+      return latest.trim() != current.trim();
+    }
+
+    final length = latestParts.length > currentParts.length
+        ? latestParts.length
+        : currentParts.length;
+    for (var i = 0; i < length; i++) {
+      final latestPart = i < latestParts.length ? latestParts[i] : 0;
+      final currentPart = i < currentParts.length ? currentParts[i] : 0;
+      if (latestPart != currentPart) return latestPart > currentPart;
+    }
+    return false;
+  }
+
+  /// 把 "v2.0.3+16" 解析成 [2, 0, 3]，忽略 v 前缀、后缀和构建号。
+  static List<int>? _parseVersion(String version) {
+    var value = version.trim();
+    if (value.isEmpty) return null;
+    if (value.startsWith('v') || value.startsWith('V')) {
+      value = value.substring(1);
+    }
+
+    final suffixIndex = value.indexOf(RegExp(r'[-+]'));
+    if (suffixIndex >= 0) value = value.substring(0, suffixIndex);
+
+    final parts = value.split('.');
+    final numbers = <int>[];
+    for (final part in parts) {
+      final match = RegExp(r'^\d+').firstMatch(part);
+      if (match == null) return null;
+      numbers.add(int.parse(match.group(0)!));
+    }
+    return numbers.isEmpty ? null : numbers;
   }
 
   /// 展示版本对比结果弹窗；`hasUpdate` 为 false 时若无更新且 `silentOnNoUpdate` 为 true 则直接静默返回。
@@ -93,28 +146,33 @@ class UpdateService {
     String currentVersion, {
     bool silentOnNoUpdate = false,
   }) {
-    final hasUpdate = info.latestVersion != currentVersion;
+    final hasUpdate = isNewerVersion(info.latestVersion, currentVersion);
     if (!hasUpdate && silentOnNoUpdate) return;
 
-    showDialog(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: Text(hasUpdate ? S.t('发现新版本') : S.t('已是最新')),
-        content: Text(hasUpdate
-            ? '最新版本: ${info.latestVersion}\n当前版本: $currentVersion'
-            : S.f('当前版本 {0} 已是最新', [currentVersion])),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(context), child: T('关闭')),
-          if (hasUpdate)
-            FilledButton(
-              onPressed: () {
-                Navigator.pop(context);
-                downloadAndInstall(context, info);
-              },
-              child: T('立即更新'),
+    if (!hasUpdate) {
+      showDialog<void>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          title: Text(S.t('已是最新')),
+          content: Text(S.f('当前版本 {0} 已是最新', [currentVersion])),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: T('关闭'),
             ),
-        ],
+          ],
+        ),
+      );
+      return;
+    }
+
+    showDialog<void>(
+      context: context,
+      builder: (_) => UpdateDialog(
+        info: info,
+        currentVersion: currentVersion,
+        onUpdate: () => downloadAndInstall(context, info),
+        onOpenUrl: openUrl,
       ),
     );
   }
@@ -171,7 +229,9 @@ class UpdateService {
                     CircularProgressIndicator(value: value),
                     const SizedBox(height: 16),
                     Text(
-                      percent == null ? S.t('正在下载安装包…') : S.f('下载中：{0}%', [percent]),
+                      percent == null
+                          ? S.t('正在下载安装包…')
+                          : S.f('下载中：{0}%', [percent]),
                       style: Theme.of(context).textTheme.bodyMedium,
                     ),
                   ],

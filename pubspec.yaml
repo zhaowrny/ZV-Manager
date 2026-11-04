@@ -1,6 +1,6 @@
 name: zv_manager
 description: Minecraft服务器管理工具
-version: 2.0.1+14
+version: 2.0.3+16
 
 environment:
   sdk: ">=3.0.0 <4.0.0"
