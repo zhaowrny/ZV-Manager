@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 
 import '../../core/l10n/strings.dart';
 import '../../core/utils/update_service.dart';
+import '../../core/utils/app_links.dart';
 import '../../core/widgets/z_widgets.dart';
 import '../../providers/wallpaper_provider.dart';
 
@@ -99,6 +100,24 @@ class _AboutPageState extends State<AboutPage> {
               leading: Icon(Icons.fact_check_outlined,
                   size: 20, color: st.subColor),
               onTap: () => showLicensePage(context: context),
+            ),
+            ZDivider(style: st),
+            ZRow(
+              title: '支持作者 · 爱发电',
+              subtitle: '通过爱发电支持项目开发',
+              style: st,
+              leading: Icon(Icons.favorite_border,
+                  size: 20, color: st.subColor),
+              onTap: () => openAfdian(context),
+            ),
+            ZDivider(style: st),
+            ZRow(
+              title: '加入官方 QQ 群',
+              subtitle: '与开发者和其他用户交流',
+              style: st,
+              leading: Icon(Icons.group_outlined,
+                  size: 20, color: st.subColor),
+              onTap: () => joinQQGroup(context),
             ),
           ]),
           const SizedBox(height: 14),

@@ -237,7 +237,7 @@ class _ServerLogPageState extends State<ServerLogPage> {
                 subtitle: '每 5 秒重新读取目录列表',
                 style: st,
                 leading: Icon(Icons.autorenew, size: 20, color: st.subColor),
-                trailing: ZToggle(
+                trailing: ZSwitch(
                   value: _autoRefresh,
                   size: 40,
                   borderColor: st.subColor,
@@ -430,7 +430,7 @@ class _LogViewerPageState extends State<_LogViewerPage> {
                 label: T('底部'),
               ),
               const SizedBox(width: 6),
-              ZToggle(
+              ZSwitch(
                 value: _autoRefresh,
                 size: 40,
                 borderColor: Theme.of(context).colorScheme.onSurfaceVariant,

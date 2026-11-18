@@ -146,7 +146,7 @@ class _ServerFormDialogState extends State<ServerFormDialog> {
                     style: st,
                     title: 'SSH 连接（可选）',
                     subtitle: '用于模组插件管理与远程终端',
-                    trailing: ZToggle(
+                    trailing: ZSwitch(
                       value: _sshEnabled,
                       onChanged: (v) => setState(() => _sshEnabled = v),
                     ),

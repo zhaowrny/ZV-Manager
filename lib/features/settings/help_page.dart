@@ -123,13 +123,27 @@ class HelpPage extends StatelessWidget {
           ),
           _TutorialPanel(
             style: st,
+            icon: Icons.notifications_active_outlined,
+            title: '七、状态监控与通知',
+            steps: const [
+              '进入「我的」→ 设置 → 「状态监控」，打开总开关',
+              '首次开启会申请通知权限（Android 13+），请点「允许」，否则提醒会被系统丢弃',
+              '按需开启「服务器离线 / 服务器恢复 / 玩家上线」三类提醒',
+              '「检查间隔」可选 30 秒 / 1 / 2 / 5 分钟，间隔越短发现越快、轮询压力越大',
+              '点「立即检查一次」可手动验证 RCON 配置是否可用',
+              '提醒依赖 App 进程存活：彻底关闭 App 或被系统省电策略限制时不会推送',
+            ],
+          ),
+          _TutorialPanel(
+            style: st,
             icon: Icons.help_outline,
-            title: '七、常见问题',
+            title: '八、常见问题',
             steps: const [
               'Q：连接失败？→ 检查防火墙是否放行端口、地址端口是否填对、服务器是否在线',
               'Q：控制台能连但模组页提示无 SSH？→ 编辑服务器开启 SSH 并填好账号密码',
               'Q：TPS 显示 —？→ 原版服务端不支持 tps 命令，Paper/Purpur 等服务端才支持',
               'Q：上传模组后不生效？→ 需要重启服务器',
+              'Q：开了监控却收不到通知？→ 检查系统是否允许本应用通知、是否开了省电限制',
             ],
           ),
         ],

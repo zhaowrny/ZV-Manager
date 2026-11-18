@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import '../l10n/strings.dart';
+import 'z_widgets.dart';
 
 class UserAgreementDialog extends StatefulWidget {
   final VoidCallback onAgree;
@@ -178,23 +179,11 @@ class _UserAgreementDialogState extends State<UserAgreementDialog> {
                     : null,
                 child: Row(
                   children: [
-                    SizedBox(
-                      width: 24,
-                      height: 24,
-                      child: Checkbox(
-                        value: _isChecked,
-                        onChanged: (_countdown <= 0 && _readToEnd)
-                            ? (value) {
-                                setState(() {
-                                  _isChecked = value ?? false;
-                                });
-                              }
-                            : null,
-                        activeColor: const Color(0xFF28A745),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                      ),
+                    ZSwitch(
+                      value: _isChecked,
+                      size: 34,
+                      enabled: _countdown <= 0 && _readToEnd,
+                      onChanged: (v) => setState(() => _isChecked = v),
                     ),
                     const SizedBox(width: 8),
                     Text(

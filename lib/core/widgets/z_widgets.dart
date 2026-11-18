@@ -18,8 +18,9 @@ import '../../providers/wallpaper_provider.dart';
 /// 所有组件都接受 [hasWallpaper]，在有自定义壁纸时自动切换为半透明深色
 /// 浮层 + 白色文字，保证文字在任意背景下都能读清。
 
-/// ZL2 主色：勾选钮/选中态统一使用的绿色。
-const Color kZAccent = Color(0xFF4CAF50);
+/// 全站强调色：开关/选中态/徽章统一使用。
+/// 由 ThemeProvider 在切换主题配色时同步赋值，所有引用点自动跟随，无需逐处传参。
+Color kZAccent = const Color(0xFF4CAF50);
 
 /// ZL2 圆角：分组面板与内部行的圆角。
 const double kZRadius = 18.0;
@@ -192,41 +193,114 @@ class ZRow extends StatelessWidget {
 }
 
 /// ZL2 式圆形勾选开关：选中为绿底白勾，未选中为描边空心圆。
-class ZToggle extends StatelessWidget {
+/// 胶囊开关：关闭时灰色轨道 + 白色圆滑块，开启时轨道变为当前主题强调色。
+///
+/// 参数与原 ZToggle 兼容（[size] 作为轨道高度基准、[borderColor] 作为关闭态
+/// 轨道色），便于全站平滑替换。[enabled] 为 false 时置灰且不可点击，用于
+/// 「跟随系统」开启时联动禁用「深色模式」。
+class ZSwitch extends StatelessWidget {
   final bool value;
   final ValueChanged<bool> onChanged;
-
-  /// 直径，设置页用 46，列表行内可用 40。
   final double size;
-
-  /// 未选中时描边颜色（有壁纸时传白色系）。
   final Color? borderColor;
+  final bool enabled;
 
-  const ZToggle({
+  const ZSwitch({
     super.key,
     required this.value,
     required this.onChanged,
     this.size = 46,
     this.borderColor,
+    this.enabled = true,
   });
 
   @override
   Widget build(BuildContext context) {
-    final dim = borderColor ?? Colors.white54;
+    final trackH = (size * 0.7).clamp(22.0, 32.0).toDouble();
+    final trackW = trackH * 1.7;
+    final thumb = trackH - 6.0;
+    final offTrack = (borderColor ??
+            Theme.of(context).colorScheme.outlineVariant)
+        .withOpacity(0.32);
+    final onTrack = enabled ? kZAccent : kZAccent.withOpacity(0.4);
+
     return GestureDetector(
-      onTap: () => onChanged(!value),
+      onTap: enabled ? () => onChanged(!value) : null,
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
+        duration: const Duration(milliseconds: 180),
+        width: trackW,
+        height: trackH,
+        padding: const EdgeInsets.all(3),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(trackH / 2),
+          color: value ? onTrack : offTrack,
+        ),
+        child: AnimatedAlign(
+          duration: const Duration(milliseconds: 180),
+          curve: Curves.easeOut,
+          alignment: value ? Alignment.centerRight : Alignment.centerLeft,
+          child: Container(
+            width: thumb,
+            height: thumb,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: Colors.white,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.18),
+                  blurRadius: 2,
+                  offset: const Offset(0, 1),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// 圆形打勾标记：选中为实心圆底白勾，未选中为描边空心圆。
+///
+/// 与 [ZSwitch] 的滑块开关不同，它表达「选中 / 未选中」的标记语义，
+/// 适用于二值状态、单选列表与多选列表。参数与 [ZSwitch] 兼容，
+/// 便于直接替换；[enabled] 为 false 时置灰且不响应点击。
+class ZCheck extends StatelessWidget {
+  final bool value;
+  final ValueChanged<bool>? onChanged;
+  final double size;
+  final Color? borderColor;
+  final bool enabled;
+
+  const ZCheck({
+    super.key,
+    required this.value,
+    this.onChanged,
+    this.size = 26,
+    this.borderColor,
+    this.enabled = true,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final dim = (borderColor ??
+            Theme.of(context).colorScheme.outlineVariant)
+        .withOpacity(0.55);
+    final accent = enabled ? kZAccent : kZAccent.withOpacity(0.4);
+    return GestureDetector(
+      onTap: enabled && onChanged != null ? () => onChanged!(!value) : null,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
         width: size,
         height: size,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
-          color: value ? kZAccent : Colors.transparent,
-          border: Border.all(color: value ? kZAccent : dim, width: 2),
+          color: value ? accent : Colors.transparent,
+          border: Border.all(color: value ? accent : dim, width: 2),
         ),
         child: value
-            ? Icon(Icons.check, size: size * 0.52, color: Colors.white)
-            : const SizedBox.shrink(),
+            ? Icon(Icons.check, size: size * 0.62, color: Colors.white)
+            : null,
       ),
     );
   }

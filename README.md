@@ -21,6 +21,10 @@ ZV Manager 是一款轻量、安全的 Minecraft 服务器远程管理工具。�
 | 控制台 | RCON 模式 | ✅ |
 | 控制台 | 快速命令预设 | ✅ |
 | 主题 | 浅色/深色/跟随系统 | ✅ |
+| 主题 | 多主题配色（ZL2 绿 / 海蓝 / 星紫 / 暖橙 / 樱粉）+ 胶囊开关式选项 | ✅ v2.0.3 新增 |
+| 支持 | 爱发电赞助 + 官方 QQ 群加群入口（关于页 / 设置页） | ✅ v2.0.3 新增 |
+| 状态监控 | 定时轮询服务器在线状态（30 秒 / 1 / 2 / 5 分钟可选） | ✅ v2.1 新增 |
+| 状态监控 | 离线 / 恢复 / 玩家上线系统通知（Android 13+ 运行时授权） | ✅ v2.1 新增 |
 | 壁纸 | 自定义壁纸 | ✅ |
 | 数据 | 加密存储 | ✅ |
 | 模组管理 | SFTP 浏览 mods/plugins 目录 | ✅ v2.0 新增 |
@@ -32,7 +36,7 @@ ZV Manager 是一款轻量、安全的 Minecraft 服务器远程管理工具。�
 | 下载中心 | 下载完成自动经 SFTP 上传到服务器对应目录 | ✅ v2.0 新增 |
 | 终端 | SSH Shell（xterm 终端、快捷键栏、多会话标签、断线自动重连） | ✅ v2.0 新增 |
 | UI | Dashboard 卡片式首页 + 底部导航（服务器/控制台/玩家/模组/终端/我的） | ✅ v2.0 新增 |
-| UI | 全站 ZL2 风格（分组圆角面板 / 两行式设置行 / 圆形绿底勾选钮 / 透明沉浸顶栏） | ✅ v2.0 新增 |
+| UI | 全站 ZL2 风格（分组圆角面板 / 两行式设置行 / 胶囊开关 / 透明沉浸顶栏） | ✅ v2.0 新增 |
 | UI | 控制台日志级别着色（INFO 绿 / WARN 黄 / ERROR 红） | ✅ v2.0 新增 |
 | 依赖仓库 | SQLite 依赖索引 + 增量同步 + 依赖树查询 + 缺失依赖一键补齐 + 重复检测 | ✅ v2.0 新增 |
 
@@ -40,16 +44,17 @@ ZV Manager 是一款轻量、安全的 Minecraft 服务器远程管理工具。�
 
 | 项目 | 说明 |
 |------|------|
-| **版本** | 2.0.3 |
+| **版本** | 2.1.0 |
 | **框架** | Flutter 3.x |
 | **语言** | Dart 3.x |
 | **目标平台** | Android 7.0+ / Web |
 | **通信协议** | RCON (Minecraft 远程控制协议) + SSH/SFTP (dartssh2) |
 | **本地存储** | Shared Preferences + Flutter Secure Storage + SQLite (依赖索引) |
 | **状态管理** | Provider |
-| **主题** | Material 3 + ZL2 风格组件库（`core/widgets/z_widgets.dart`） |
+| **主题** | Material 3 + ZL2 风格组件库（`core/widgets/z_widgets.dart`）+ 5 套主题配色 |
 | **网络** | Dio（Modrinth API / 镜像线路 / 下载队列） |
 | **国际化** | 轻量 i18n（`core/l10n/strings.dart`，中 / 英） |
+| **通知** | flutter_local_notifications（状态监控提醒，Android 13+ 运行时授权） |
 
 ---
 
@@ -68,21 +73,27 @@ lib/
 │   │   ├── jar_metadata.dart              # jar 元数据解析（fabric.mod.json / plugin.yml）
 │   │   ├── mirror_service.dart            # 镜像线路（MCIM / 官方 / 自定义）+ 测速
 │   │   ├── modrinth_api.dart              # Modrinth API 客户端（镜像故障回退官方）
+│   │   ├── notification_service.dart      # 系统通知（通道 / 权限 / 长文本）
+│   │   ├── server_monitor_service.dart    # 状态监控（轮询 / 状态转移 / 抖动保护）
 │   │   ├── sftp_service.dart              # SFTP 文件传输
 │   │   └── ssh_shell_service.dart         # SSH Shell 会话
 │   ├── theme/
 │   │   └── app_theme.dart                 # Material 3 主题 + ZL2 配色
 │   ├── utils/
+│   │   ├── app_links.dart                 # 外部链接配置（爱发电 / 官方 QQ 群）
 │   │   ├── background_service.dart        # 后台保活
 │   │   ├── command_preset_service.dart    # 控制台命令预设
 │   │   ├── rcon_client.dart               # RCON 客户端
 │   │   ├── rcon_stream_parser.dart        # RCON 流解析
+│   │   ├── release_notes.dart             # 版本更新日志（按版本聚合）
+│   │   ├── update_info.dart               # 更新信息模型
 │   │   └── update_service.dart            # Gitee Release 更新检查 / 安装
 │   └── widgets/
 │       ├── background_widget.dart         # 全局壁纸背景（交叉淡入防闪）
 │       ├── empty_state_page.dart          # 空态占位页
+│       ├── update_dialog.dart             # 版本更新弹窗（更新日志 / 下载进度）
 │       ├── user_agreement_dialog.dart     # 用户守则弹窗
-│       └── z_widgets.dart                 # ZL2 公共组件库（ZPanel / ZRow / ZToggle / ZAppBar / ZSheetRow …）
+│       └── z_widgets.dart                 # ZL2 公共组件库（ZPanel / ZRow / ZSwitch / ZAppBar / ZSheetRow …）
 ├── data/
 │   └── services/
 │       └── secure_storage_service.dart    # 加密存储

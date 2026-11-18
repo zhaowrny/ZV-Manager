@@ -196,9 +196,9 @@ class _MirrorRow extends StatelessWidget {
       title: title,
       subtitle: subtitle,
       onTap: onTap,
-      trailing: ZToggle(
+      trailing: ZCheck(
         value: selected,
-        size: 30,
+        size: 20,
         borderColor: style.subColor,
         // 单选：只允许从未选变选中，再点已选项不做取消
         onChanged: (_) => onTap(),

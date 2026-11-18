@@ -339,7 +339,7 @@ class _PlayerListPageState extends State<PlayerListPage> {
                 if (_selecting)
                   Text(
                     S.f('已选 {0} 人', [_selected.length]),
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 12.5,
                       fontWeight: FontWeight.w700,
                       color: kZAccent,
@@ -411,7 +411,7 @@ class _PlayerRow extends StatelessWidget {
       title: player.name,
       subtitle: player.uuid.isEmpty ? null : player.uuid,
       leading: selecting
-          ? ZToggle(
+          ? ZSwitch(
               value: selected,
               size: 34,
               borderColor: style.subColor,

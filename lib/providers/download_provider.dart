@@ -2,10 +2,10 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:path_provider/path_provider.dart';
-import '../../core/services/download_manager.dart';
-import '../../core/services/modrinth_api.dart';
-import '../../core/services/mirror_service.dart';
-import '../../providers/server_provider.dart';
+import '../core/services/download_manager.dart';
+import '../core/services/modrinth_api.dart';
+import '../core/services/mirror_service.dart';
+import 'server_provider.dart';
 
 /// 下载中心状态：镜像源选择 + Modrinth 搜索 + 下载队列暴露。
 class DownloadProvider extends ChangeNotifier {

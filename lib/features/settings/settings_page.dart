@@ -6,6 +6,9 @@ import 'dart:io';
 import 'package:path_provider/path_provider.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/utils/background_service.dart';
+import '../../core/utils/app_links.dart';
+import '../../core/services/notification_service.dart';
+import '../../core/services/server_monitor_service.dart';
 import '../../core/widgets/background_widget.dart';
 import '../../core/widgets/z_widgets.dart';
 import '../../providers/theme_provider.dart';
@@ -146,9 +149,12 @@ class _SettingsPageState extends State<SettingsPage> {
                       ZSheetRow(
                         icon: Icons.language,
                         title: _languageName(m),
-                        trailing: provider.mode == m
-                            ? Icon(Icons.check_circle_rounded, color: kZAccent, size: 22)
-                            : Icon(Icons.circle_outlined, color: st.subColor, size: 22),
+                        trailing: ZCheck(
+                          value: provider.mode == m,
+                          size: 22,
+                          borderColor: st.subColor,
+                          onChanged: (_) => Navigator.pop(ctx, m),
+                        ),
                         onTap: () => Navigator.pop(ctx, m),
                       ),
                     ],
@@ -161,6 +167,53 @@ class _SettingsPageState extends State<SettingsPage> {
       },
     );
     if (mode != null) await provider.setMode(mode);
+  }
+
+  /// 主题配色选择：5 套种子色，选项以开关呈现。
+  Future<void> _pickThemeColor() async {
+    final provider = context.read<ThemeProvider>();
+    final color = await showDialog<AppThemeColor>(
+      context: context,
+      builder: (ctx) {
+        final st = ZStyle.of(ctx, hasWallpaper: false);
+        return Dialog(
+          child: Padding(
+            padding: const EdgeInsets.all(8),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+                  child: T('主题配色', style: Theme.of(ctx).textTheme.titleMedium),
+                ),
+                ZPanel(
+                  style: st,
+                  children: [
+                    for (final c in AppThemeColor.values) ...[
+                      if (c != AppThemeColor.values.first) ZDivider(style: st),
+                      ZSheetRow(
+                        icon: Icons.palette_outlined,
+                        iconColor: c.seed,
+                        title: S.t(c.label),
+                        trailing: ZCheck(
+                          value: provider.themeColor == c,
+                          size: 22,
+                          borderColor: st.subColor,
+                          onChanged: (_) => Navigator.pop(ctx, c),
+                        ),
+                        onTap: () => Navigator.pop(ctx, c),
+                      ),
+                    ],
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+    if (color != null) await provider.setThemeColor(color);
   }
 
   Future<void> _pickVideo() async {
@@ -254,14 +307,107 @@ class _SettingsPageState extends State<SettingsPage> {
     }
   }
 
+  // ==================== 状态监控 ====================
+
+  /// 开启监控前先要通知权限：Android 13+ 没权限时通知会被系统直接丢掉，
+  /// 用户只会觉得「开了但没反应」，所以这里先要权限、拿不到就明说。
+  Future<void> _toggleMonitor(bool value) async {
+    final monitor = context.read<ServerMonitorService>();
+    if (value) {
+      final granted = await NotificationService.instance.ensurePermission();
+      if (!mounted) return;
+      if (!granted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: T('未获得通知权限，提醒可能无法显示，请到系统设置中允许通知')),
+        );
+      }
+    }
+    await monitor.setEnabled(value);
+  }
+
+  /// 轮询间隔选择：30 秒 / 1 分钟 / 2 分钟 / 5 分钟。
+  Future<void> _pickMonitorInterval() async {
+    final monitor = context.read<ServerMonitorService>();
+    final selected = await showDialog<int>(
+      context: context,
+      builder: (ctx) {
+        final st = ZStyle.of(ctx, hasWallpaper: false);
+        return Dialog(
+          child: Padding(
+            padding: const EdgeInsets.all(8),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+                  child: T('检查间隔', style: Theme.of(ctx).textTheme.titleMedium),
+                ),
+                ZPanel(
+                  style: st,
+                  children: [
+                    for (final seconds
+                        in ServerMonitorService.intervalOptions) ...[
+                      if (seconds !=
+                          ServerMonitorService.intervalOptions.first)
+                        ZDivider(style: st),
+                      ZSheetRow(
+                        icon: Icons.schedule,
+                        title: ServerMonitorService.labelForInterval(seconds),
+                        trailing: ZCheck(
+                          value: monitor.intervalSec == seconds,
+                          size: 22,
+                          borderColor: st.subColor,
+                          onChanged: (_) => Navigator.pop(ctx, seconds),
+                        ),
+                        onTap: () => Navigator.pop(ctx, seconds),
+                      ),
+                    ],
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+    if (selected != null) await monitor.setInterval(selected);
+  }
+
+  /// 手动跑一轮检查，验证 RCON 配置是否正确。
+  Future<void> _runMonitorCheck() async {
+    final monitor = context.read<ServerMonitorService>();
+    await monitor.checkNow();
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          S.f('检查完成：{0} 台服务器在线', <Object>[monitor.onlineCount]),
+        ),
+        duration: const Duration(seconds: 2),
+      ),
+    );
+  }
+
+  /// 最近检查时间的展示文案。
+  String _lastCheckText(DateTime? at) {
+    if (at == null) return S.t('尚未检查');
+    final hh = at.hour.toString().padLeft(2, '0');
+    final mm = at.minute.toString().padLeft(2, '0');
+    return S.f('{0}:{1}', <Object>[hh, mm]);
+  }
+
   // ==================== build ====================
 
   @override
   Widget build(BuildContext context) {
     final themeProvider = context.watch<ThemeProvider>();
     final hasWallpaper = context.watch<WallpaperProvider>().hasWallpaper;
+    final monitor = context.watch<ServerMonitorService>();
     final scheme = Theme.of(context).colorScheme;
     final st = ZStyle(hasWallpaper: hasWallpaper, scheme: scheme);
+    final systemIsDark =
+        MediaQuery.of(context).platformBrightness == Brightness.dark;
 
     return Scaffold(
       backgroundColor: hasWallpaper ? Colors.transparent : null,
@@ -274,22 +420,41 @@ class _SettingsPageState extends State<SettingsPage> {
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
         children: [
           ZPanel(style: st, children: [
-            // ---------- 外观主题 ----------
+            // ---------- 外观：双开关 + 配色 ----------
             ZRow(
-              title: '外观主题',
-              subtitle: '亮色、暗色或跟随系统',
+              title: '深色模式',
+              subtitle: themeProvider.followSystem
+                  ? '跟随系统开启时由系统决定，关闭后可手动切换'
+                  : '开启后使用暗色界面',
               style: st,
-              trailing: ZSegmentedCircles<AppThemeMode>(
-                value: themeProvider.themeMode,
-                onChanged: (m) => themeProvider.setThemeMode(m),
-                onSurface: st.titleColor,
-                options: const [
-                  ZCircleOption(value: AppThemeMode.light, icon: Icons.light_mode),
-                  ZCircleOption(value: AppThemeMode.dark, icon: Icons.dark_mode),
-                  ZCircleOption(
-                      value: AppThemeMode.system, icon: Icons.brightness_auto),
-                ],
+              trailing: ZCheck(
+                value: themeProvider.darkMode(systemIsDark: systemIsDark),
+                enabled: !themeProvider.followSystem,
+                size: 26,
+                borderColor: st.subColor,
+                onChanged: (v) => themeProvider.setDarkMode(v),
               ),
+            ),
+            ZDivider(style: st),
+            ZRow(
+              title: '跟随系统',
+              subtitle: '随系统的深色 / 浅色设置自动切换',
+              style: st,
+              trailing: ZCheck(
+                value: themeProvider.followSystem,
+                size: 26,
+                borderColor: st.subColor,
+                onChanged: (v) =>
+                    themeProvider.setFollowSystem(v, systemIsDark: systemIsDark),
+              ),
+            ),
+            ZDivider(style: st),
+            ZRow(
+              title: '主题配色',
+              subtitle: '切换全站强调色与界面色调',
+              style: st,
+              value: S.t(themeProvider.themeColor.label),
+              onTap: _pickThemeColor,
             ),
             ZDivider(style: st),
             ZRow(
@@ -308,8 +473,9 @@ class _SettingsPageState extends State<SettingsPage> {
                 title: '视频声音',
                 subtitle: '开启后背景视频将播放声音',
                 style: st,
-                trailing: ZToggle(
+                trailing: ZCheck(
                   value: _videoSoundEnabled,
+                  size: 26,
                   borderColor: st.subColor,
                   onChanged: (value) async {
                     await BackgroundService.setVideoSound(value);
@@ -354,6 +520,80 @@ class _SettingsPageState extends State<SettingsPage> {
           ]),
           const SizedBox(height: 14),
           ZPanel(style: st, children: [
+            // ---------- 状态监控与通知 ----------
+            ZRow(
+              title: '状态监控',
+              subtitle: monitor.enabled
+                  ? S.f('每 {0}检查一次 · 最近 {1}', <Object>[
+                      monitor.intervalLabel,
+                      _lastCheckText(monitor.lastCheckAt),
+                    ])
+                  : '开启后定时检查服务器状态，并在变化时推送通知',
+              style: st,
+              trailing: ZCheck(
+                value: monitor.enabled,
+                size: 26,
+                borderColor: st.subColor,
+                onChanged: _toggleMonitor,
+              ),
+            ),
+            ZDivider(style: st),
+            ZRow(
+              title: '服务器离线提醒',
+              subtitle: '服务器掉线时推送系统通知',
+              style: st,
+              trailing: ZCheck(
+                value: monitor.notifyOffline,
+                enabled: monitor.enabled,
+                size: 26,
+                borderColor: st.subColor,
+                onChanged: monitor.setNotifyOffline,
+              ),
+            ),
+            ZDivider(style: st),
+            ZRow(
+              title: '服务器恢复提醒',
+              subtitle: '服务器重新上线时推送通知',
+              style: st,
+              trailing: ZCheck(
+                value: monitor.notifyRecovered,
+                enabled: monitor.enabled,
+                size: 26,
+                borderColor: st.subColor,
+                onChanged: monitor.setNotifyRecovered,
+              ),
+            ),
+            ZDivider(style: st),
+            ZRow(
+              title: '玩家上线提醒',
+              subtitle: '有新玩家进入服务器时推送通知',
+              style: st,
+              trailing: ZCheck(
+                value: monitor.notifyJoin,
+                enabled: monitor.enabled,
+                size: 26,
+                borderColor: st.subColor,
+                onChanged: monitor.setNotifyJoin,
+              ),
+            ),
+            ZDivider(style: st),
+            ZRow(
+              title: '检查间隔',
+              subtitle: '间隔越短发现越快，对服务器的轮询压力也越大',
+              style: st,
+              value: monitor.intervalLabel,
+              onTap: monitor.enabled ? _pickMonitorInterval : null,
+            ),
+            ZDivider(style: st),
+            ZRow(
+              title: monitor.isChecking ? '正在检查…' : '立即检查一次',
+              subtitle: '手动跑一轮检查，用来确认 RCON 配置是否可用',
+              style: st,
+              onTap: monitor.isChecking ? null : _runMonitorCheck,
+            ),
+          ]),
+          const SizedBox(height: 14),
+          ZPanel(style: st, children: [
             ZRow(
               title: '使用教程',
               subtitle: '如何开启 RCON / SSH、模组管理、下载与终端',
@@ -383,6 +623,20 @@ class _SettingsPageState extends State<SettingsPage> {
                 context,
                 MaterialPageRoute(builder: (_) => const AboutPage()),
               ),
+            ),
+            ZDivider(style: st),
+            ZRow(
+              title: '支持作者 · 爱发电',
+              subtitle: '通过爱发电支持项目开发',
+              style: st,
+              onTap: () => openAfdian(context),
+            ),
+            ZDivider(style: st),
+            ZRow(
+              title: '加入官方 QQ 群',
+              subtitle: '与开发者和其他用户交流',
+              style: st,
+              onTap: () => joinQQGroup(context),
             ),
           ]),
         ],

@@ -166,6 +166,9 @@ class S {
     '选择图片': 'Pick image',
     '选择视频': 'Pick video',
     '清除背景': 'Clear background',
+    '界面显示语言': 'Display language',
+    '选择一张图片或一段视频作为应用背景':
+        'Pick an image or a video as the app background',
     '使用教程（模组/终端等）': 'Tutorials (mods / terminal etc.)',
     // ---- 模板插值 ----
     '服务器「{0}」已断开连接！': 'Server "{0}" disconnected!',
@@ -253,6 +256,8 @@ class S {
         'Q: Console connects but the mods page says no SSH? → Edit the server, enable SSH and fill in the credentials',
     'Q：连接失败？→ 检查防火墙是否放行端口、地址端口是否填对、服务器是否在线':
         'Q: Connection failed? → Check firewall rules for the port, verify address/port, and confirm the server is online',
+    'Q：开了监控却收不到通知？→ 检查系统是否允许本应用通知、是否开了省电限制':
+        'Q: Monitoring is on but no alerts? → Check that notifications are allowed for this app and battery saving is not restricting it',
     'SSH 拥有服务器完全控制权，请勿随意执行不熟悉的命令':
         'SSH grants full server control; do not run unfamiliar commands carelessly',
     'SSH 是服务器自带的远程管理服务，绝大多数独立服务器默认已开启（端口 22）':
@@ -268,7 +273,20 @@ class S {
     '一、如何开启 RCON（必配，控制台/玩家管理需要）':
         '1. How to enable RCON (required for console/player management)',
     '一、软件性质与用途': '1. Nature and Purpose of the Software',
-    '七、常见问题': '7. FAQ',
+    '七、状态监控与通知': '7. Status Monitoring and Notifications',
+    '进入「我的」→ 设置 → 「状态监控」，打开总开关':
+        'Open Me → Settings → "Status monitoring" and turn the switch on',
+    '首次开启会申请通知权限（Android 13+），请点「允许」，否则提醒会被系统丢弃':
+        'The first time you enable it, Android 13+ asks for notification permission — tap Allow, otherwise alerts are dropped',
+    '按需开启「服务器离线 / 服务器恢复 / 玩家上线」三类提醒':
+        'Enable the offline / recovered / player-join alerts you want',
+    '「检查间隔」可选 30 秒 / 1 / 2 / 5 分钟，间隔越短发现越快、轮询压力越大':
+        '"Check interval" can be 30 s / 1 / 2 / 5 min; shorter is faster but polls more',
+    '点「立即检查一次」可手动验证 RCON 配置是否可用':
+        'Tap "Check now" to verify the RCON configuration manually',
+    '提醒依赖 App 进程存活：彻底关闭 App 或被系统省电策略限制时不会推送':
+        'Alerts need the app process alive: nothing is pushed once the app is fully closed or restricted by battery saving',
+    '八、常见问题': '8. FAQ',
     '七、数据与隐私': '7. Data and Privacy',
     '三、合法使用（重要）': '3. Lawful Use (Important)',
     '三、模组 / 插件管理怎么用': '3. Using Mod / Plugin Management',
@@ -522,6 +540,62 @@ class S {
     '请选择一台已配置 SSH 的服务器': 'Select a server with SSH configured',
     '从 Gitee 获取最新版本': 'Fetch the latest version from Gitee',
     '查看本应用使用的第三方库许可': 'View third-party licenses used by this app',
+    '支持作者 · 爱发电': 'Support us on Afdian',
+    '通过爱发电支持项目开发': 'Support development via Afdian',
+    '赞助链接待配置': 'Sponsor link not configured yet',
+    '加入官方 QQ 群': 'Join our QQ group',
+    '与开发者和其他用户交流': 'Chat with the developer and other users',
+    '群号已复制，打开 QQ 搜索加群':
+        'Group number copied — open QQ and search to join',
+    // ---- 多主题 / 胶囊开关 ----
+    '深色模式': 'Dark mode',
+    '跟随系统': 'Follow system',
+    '主题配色': 'Theme color',
+    '开启后使用暗色界面': 'Use the dark interface',
+    '跟随系统开启时由系统决定，关闭后可手动切换':
+        'Follows the system; turn off Follow system to set it manually',
+    '随系统的深色 / 浅色设置自动切换': 'Switch automatically with the system theme',
+    '切换全站强调色与界面色调': 'Change the accent color across the app',
+    'ZL2 绿': 'ZL2 Green',
+    '海蓝': 'Ocean Blue',
+    '星紫': 'Violet',
+    '暖橙': 'Sunset Orange',
+    '樱粉': 'Sakura Pink',
+    // ---- 状态监控与通知 ----
+    '状态监控': 'Status monitoring',
+    '开启后定时检查服务器状态，并在变化时推送通知':
+        'Periodically checks server status and pushes alerts on changes',
+    '每 {0}检查一次 · 最近 {1}': 'Every {0} · last check {1}',
+    '服务器离线提醒': 'Offline alerts',
+    '服务器掉线时推送系统通知':
+        'Send a system notification when a server goes offline',
+    '服务器恢复提醒': 'Recovery alerts',
+    '服务器重新上线时推送通知':
+        'Send a notification when a server comes back online',
+    '玩家上线提醒': 'Player join alerts',
+    '有新玩家进入服务器时推送通知':
+        'Send a notification when a player joins a server',
+    '检查间隔': 'Check interval',
+    '间隔越短发现越快，对服务器的轮询压力也越大':
+        'Shorter intervals detect changes faster but poll the server more',
+    '立即检查一次': 'Check now',
+    '正在检查…': 'Checking…',
+    '手动跑一轮检查，用来确认 RCON 配置是否可用':
+        'Run one check manually to verify the RCON configuration',
+    '30 秒': '30 s',
+    '1 分钟': '1 min',
+    '2 分钟': '2 min',
+    '5 分钟': '5 min',
+    '尚未检查': 'not yet',
+    '检查完成：{0} 台服务器在线': 'Check complete: {0} server(s) online',
+    '未获得通知权限，提醒可能无法显示，请到系统设置中允许通知':
+        'Notification permission was not granted; alerts may not appear',
+    '服务器离线': 'Server offline',
+    '服务器恢复': 'Server recovered',
+    '玩家上线': 'Player joined',
+    '「{0}」已离线，可能已停止运行': '"{0}" is offline and may have stopped',
+    '「{0}」已恢复在线': '"{0}" is back online',
+    '「{0}」：{1} 进入服务器': '"{0}": {1} joined the server',
   };
 
   static String t(String zh) => en ? (_en[zh] ?? zh) : zh;

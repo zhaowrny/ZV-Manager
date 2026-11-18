@@ -2,37 +2,64 @@ import 'package:flutter/material.dart';
 
 enum AppThemeMode { light, dark, system }
 
+/// 可选主题配色：切换种子色即改变全站强调色与 surface 色调。
+enum AppThemeColor {
+  zl2Green('ZL2 绿', Color(0xFF4CAF50)),
+  oceanBlue('海蓝', Color(0xFF2196F3)),
+  violet('星紫', Color(0xFF9C27B0)),
+  sunsetOrange('暖橙', Color(0xFFFF9800)),
+  sakuraPink('樱粉', Color(0xFFE91E63));
+
+  const AppThemeColor(this.label, this.seed);
+  final String label;
+  final Color seed;
+}
+
 /// Material 3 主题（参考 ZalithLauncher 的 M3 实现风格）：
 /// - 用种子色生成完整 tonal palette，强调 colorScheme 的 surface container 层级
 /// - 形状体系改用 M3 标准圆角（8 / 12 / 16 / 28），容器类用 16-28 的大圆角
 /// - 卡片/列表靠 surfaceContainer 区分层次，弱化描边、不用阴影
 class AppTheme {
-  static const _primaryColor = Color(0xFF4CAF50);
-
   /// 形状体系（对齐 M3 shape scale）
   static const radiusXS = 8.0; // 小控件 / chip
   static const radiusS = 12.0; // 输入框 / 按钮
   static const radiusM = 16.0; // 卡片 / 列表容器
   static const radiusL = 28.0; // 弹窗 / 底部面板 / FAB
 
-  static ThemeData _base(Brightness brightness) {
+  /// 默认配色（ZL2 绿）的亮/暗主题：保留 getter，兼容既有调用与官方测试。
+  static ThemeData get lightTheme => lightThemeFor(AppThemeColor.zl2Green);
+  static ThemeData get darkTheme => darkThemeFor(AppThemeColor.zl2Green);
+
+  /// 按指定配色生成亮/暗主题；切换配色后整棵 widget 树重建即可生效。
+  static ThemeData lightThemeFor(AppThemeColor color) =>
+      _base(Brightness.light, color.seed);
+
+  static ThemeData darkThemeFor(AppThemeColor color) =>
+      _base(Brightness.dark, color.seed);
+
+  /// 把中性灰按种子色轻微染色，让 surface 层次跟随当前配色。
+  static Color _tint(Color neutral, Color seed, bool isDark) =>
+      Color.alphaBlend(seed.withOpacity(isDark ? 0.07 : 0.05), neutral);
+
+  static ThemeData _base(Brightness brightness, Color seed) {
     final isDark = brightness == Brightness.dark;
+    Color t(Color n) => _tint(n, seed, isDark);
     final scheme = ColorScheme.fromSeed(
-      seedColor: _primaryColor,
+      seedColor: seed,
       brightness: brightness,
       // 让主色更饱和、更接近 ZL2 那种"绿色主色调穿透整个界面"的效果
       dynamicSchemeVariant: DynamicSchemeVariant.fidelity,
     ).copyWith(
-      surface: isDark ? const Color(0xFF101410) : const Color(0xFFF7FAF5),
-      surfaceContainerLowest: isDark ? const Color(0xFF0B0E0B) : Colors.white,
-      surfaceContainerLow: isDark ? const Color(0xFF161A16) : const Color(0xFFF1F5EE),
-      surfaceContainer: isDark ? const Color(0xFF1B201B) : const Color(0xFFEBF0E8),
-      surfaceContainerHigh: isDark ? const Color(0xFF232823) : const Color(0xFFE3E9E0),
-      surfaceContainerHighest: isDark ? const Color(0xFF2C322C) : const Color(0xFFDCE3D9),
+      surface: isDark ? t(const Color(0xFF101310)) : t(const Color(0xFFF7F9F7)),
+      surfaceContainerLowest: isDark ? t(const Color(0xFF0B0D0B)) : Colors.white,
+      surfaceContainerLow: isDark ? t(const Color(0xFF141714)) : t(const Color(0xFFF1F4F1)),
+      surfaceContainer: isDark ? t(const Color(0xFF1A1D1A)) : t(const Color(0xFFEBEFEB)),
+      surfaceContainerHigh: isDark ? t(const Color(0xFF222622)) : t(const Color(0xFFE3E8E3)),
+      surfaceContainerHighest: isDark ? t(const Color(0xFF2A2F2A)) : t(const Color(0xFFDCE2DC)),
     );
 
     final cardColor = isDark ? scheme.surfaceContainer : scheme.surfaceContainerLowest;
-    final outline = isDark ? const Color(0xFF2E352E) : const Color(0xFFDDE4DA);
+    final outline = isDark ? t(const Color(0xFF2E332E)) : t(const Color(0xFFDDE3DD));
 
     final shapeXS = RoundedRectangleBorder(borderRadius: BorderRadius.circular(radiusXS));
     final shapeS = RoundedRectangleBorder(borderRadius: BorderRadius.circular(radiusS));
@@ -262,10 +289,6 @@ class AppTheme {
       ),
     );
   }
-
-  static ThemeData get lightTheme => _base(Brightness.light);
-
-  static ThemeData get darkTheme => _base(Brightness.dark);
 
   static ThemeMode toFlutterThemeMode(AppThemeMode mode) {
     switch (mode) {

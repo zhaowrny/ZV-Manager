@@ -299,7 +299,7 @@ class _ConsolePageState extends State<ConsolePage> {
                         width: 38,
                         height: 38,
                         margin: const EdgeInsets.symmetric(vertical: 6),
-                        decoration: const BoxDecoration(
+                        decoration: BoxDecoration(
                           shape: BoxShape.circle,
                           color: kZAccent,
                         ),

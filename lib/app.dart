@@ -9,10 +9,14 @@ import 'core/utils/update_service.dart';
 import 'core/widgets/background_widget.dart';
 import 'providers/wallpaper_provider.dart';
 import 'core/widgets/user_agreement_dialog.dart';  //  新增
+import 'core/widgets/z_widgets.dart';
 import 'features/shell/main_shell.dart';
 import 'providers/theme_provider.dart';
 import 'providers/language_provider.dart';
 import 'providers/download_provider.dart';
+import 'providers/server_provider.dart';
+import 'providers/rcon_provider.dart';
+import 'core/services/server_monitor_service.dart';
 import 'features/dashboard/server_picker_bar.dart';
 
 /// 全局导航 Key
@@ -98,6 +102,14 @@ class ZVManagerAppState extends State<ZVManagerApp> {
         // 这里绝不能再 create 新实例 —— 否则会生成一个空的影子 Provider，
         // 导致更新后服务器列表"被清空"、添加时覆盖真实数据（v2.0 实测 bug）。
         ChangeNotifierProvider(create: (_) => DownloadProvider()),
+        // 状态监控：复用 Bootstrap 里已预加载的 ServerProvider / RconProvider，
+        // 在 create 里惰性启动，避免拖慢冷启动。
+        ChangeNotifierProvider<ServerMonitorService>(
+          create: (ctx) => ServerMonitorService(
+            servers: ctx.read<ServerProvider>(),
+            rcon: ctx.read<RconProvider>(),
+          )..load(),
+        ),
         ChangeNotifierProvider(create: (_) => LanguageProvider()),
         ChangeNotifierProvider(create: (_) => SelectedServerHolder()),
         // 复用 main() 中预加载的实例，不能在这里 create 一个新的
@@ -107,12 +119,14 @@ class ZVManagerAppState extends State<ZVManagerApp> {
       ],
       child: Consumer2<ThemeProvider, LanguageProvider>(
         builder: (context, themeProvider, languageProvider, child) {
+          // 全站强调色跟随当前主题配色（z_widgets 内组件共用同一个变量）
+          kZAccent = themeProvider.themeColor.seed;
           return MaterialApp(
             title: 'ZV Manager',
             debugShowCheckedModeBanner: false,
             navigatorKey: navigatorKey,
-            theme: AppTheme.lightTheme,
-            darkTheme: AppTheme.darkTheme,
+            theme: AppTheme.lightThemeFor(themeProvider.themeColor),
+            darkTheme: AppTheme.darkThemeFor(themeProvider.themeColor),
             themeMode: themeProvider.flutterThemeMode,
             locale: languageProvider.locale,
             localizationsDelegates: const [

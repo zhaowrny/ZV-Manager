@@ -533,7 +533,7 @@ class _EmptyDashboard extends StatelessWidget {
                 color: kZAccent.withOpacity(0.12),
                 borderRadius: BorderRadius.circular(26),
               ),
-              child: const Icon(Icons.dns_rounded, size: 38, color: kZAccent),
+              child: Icon(Icons.dns_rounded, size: 38, color: kZAccent),
             ),
             const SizedBox(height: 18),
             Text(
