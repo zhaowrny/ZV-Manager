@@ -117,7 +117,8 @@ class _ServerLogPageState extends State<ServerLogPage> {
     setState(() => _autoRefresh = v);
     _autoTimer?.cancel();
     if (v) {
-      _autoTimer = Timer.periodic(const Duration(seconds: 5), (_) => _refresh());
+      _autoTimer =
+          Timer.periodic(const Duration(seconds: 5), (_) => _refresh());
     }
   }
 
@@ -182,9 +183,10 @@ class _ServerLogPageState extends State<ServerLogPage> {
                 style: st,
                 leading: Icon(Icons.dns_outlined, size: 20, color: st.subColor),
                 trailing: DropdownButton<String>(
-                  value: _server != null && servers.any((s) => s.id == _server!.id)
-                      ? _server!.id
-                      : null,
+                  value:
+                      _server != null && servers.any((s) => s.id == _server!.id)
+                          ? _server!.id
+                          : null,
                   underline: const SizedBox.shrink(),
                   borderRadius: BorderRadius.circular(12),
                   hint: T('选择'),
@@ -215,13 +217,15 @@ class _ServerLogPageState extends State<ServerLogPage> {
                 title: '日志目录',
                 subtitle: '默认按 SSH 用户推导，可手动修改',
                 style: st,
-                leading: Icon(Icons.folder_outlined, size: 20, color: st.subColor),
+                leading:
+                    Icon(Icons.folder_outlined, size: 20, color: st.subColor),
                 trailing: SizedBox(
                   width: 150,
                   child: TextField(
                     controller: _pathCtrl,
                     textAlign: TextAlign.right,
-                    style: const TextStyle(fontFamily: 'monospace', fontSize: 12),
+                    style:
+                        const TextStyle(fontFamily: 'monospace', fontSize: 12),
                     decoration: InputDecoration(
                       hintText: S.t('例如 /root/logs'),
                       hintStyle: TextStyle(fontSize: 12, color: st.subColor),
@@ -269,7 +273,8 @@ class _ServerLogPageState extends State<ServerLogPage> {
               const SizedBox(height: 14),
               Text(_error!,
                   textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 13, height: 1.5, color: st.subColor)),
+                  style:
+                      TextStyle(fontSize: 13, height: 1.5, color: st.subColor)),
               const SizedBox(height: 16),
               FilledButton.tonal(onPressed: _refresh, child: T('重试')),
             ],
@@ -381,7 +386,8 @@ class _LogViewerPageState extends State<_LogViewerPage> {
       final c = await widget.sftp.readString(widget.remotePath);
       if (!mounted) return;
       setState(() => _content = c);
-      if (_following) WidgetsBinding.instance.addPostFrameCallback((_) => _jumpBottom());
+      if (_following)
+        WidgetsBinding.instance.addPostFrameCallback((_) => _jumpBottom());
     } catch (_) {}
   }
 
@@ -443,8 +449,7 @@ class _LogViewerPageState extends State<_LogViewerPage> {
       body: NotificationListener<ScrollNotification>(
         onNotification: (n) {
           if (n is UserScrollNotification) {
-            _following = n.metrics.pixels >=
-                n.metrics.maxScrollExtent - 24;
+            _following = n.metrics.pixels >= n.metrics.maxScrollExtent - 24;
           }
           return false;
         },

@@ -1,3 +1,5 @@
+import 'dart:ui' show ImageFilter;
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -22,6 +24,15 @@ import '../../providers/wallpaper_provider.dart';
 /// 由 ThemeProvider 在切换主题配色时同步赋值，所有引用点自动跟随，无需逐处传参。
 Color kZAccent = const Color(0xFF4CAF50);
 
+/// 液态玻璃模式：由 GlassProvider 在开关切换时同步赋值。
+///
+/// 用全局变量而不是逐层传参，是因为它影响的是「所有 ZPanel / ZAppBar」这类
+/// 底层组件，28 处调用点逐个加参数既容易漏，也把简单的事搞复杂了。
+bool kZGlass = false;
+
+/// 玻璃模糊强度：数值越大越「糊」，18 在手机上既有质感又不至于糊成一片。
+const double kZGlassBlur = 14.0;
+
 /// ZL2 圆角：分组面板与内部行的圆角。
 const double kZRadius = 18.0;
 
@@ -39,9 +50,19 @@ class ZStyle {
   factory ZStyle.of(BuildContext context, {required bool hasWallpaper}) =>
       ZStyle(hasWallpaper: hasWallpaper, scheme: Theme.of(context).colorScheme);
 
-  /// 面板底色：有壁纸时半透明黑浮层，否则用主题的低层容器色。
-  Color get panelColor =>
-      hasWallpaper ? Colors.black.withOpacity(0.45) : scheme.surfaceContainerLow;
+  /// 面板底色。
+  ///
+  /// - 普通模式：有壁纸用半透明黑浮层，否则用主题低层容器色；
+  /// - 液态玻璃：壁纸上用更透的深色玻璃（保证白字可读），无壁纸时用
+  ///   半透明 surface —— 实际观感由 [ZPanel] 的模糊 + 高光渐变负责。
+  Color get panelColor {
+    if (kZGlass) {
+      return hasWallpaper
+          ? Colors.black.withOpacity(0.30)
+          : scheme.surface.withOpacity(0.55);
+    }
+    return hasWallpaper ? Colors.black.withOpacity(0.45) : scheme.surfaceContainerLow;
+  }
 
   /// 主文字色。
   Color get titleColor => hasWallpaper ? Colors.white : scheme.onSurface;
@@ -54,8 +75,15 @@ class ZStyle {
   Color get dividerColor =>
       hasWallpaper ? Colors.white.withOpacity(0.10) : scheme.outlineVariant;
 
-  /// 面板描边色（浅色主题下几乎不可见，仅用于在深色壁纸上勾出边界）。
-  Color get borderColor => Colors.white.withOpacity(0.08);
+  /// 面板描边色：液态玻璃下是一圈高光边，普通模式仅用于在壁纸上勾出边界。
+  Color get borderColor {
+    if (kZGlass) {
+      return hasWallpaper
+          ? Colors.white.withOpacity(0.34)
+          : Colors.white.withOpacity(0.65);
+    }
+    return Colors.white.withOpacity(0.08);
+  }
 }
 
 /// 分组面板：圆角容器 + 子行纵向排列。
@@ -69,15 +97,57 @@ class ZPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    final radius = BorderRadius.circular(kZRadius);
+    final content = Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: children,
+    );
+
+    if (!kZGlass) {
+      return Container(
+        decoration: BoxDecoration(
+          color: style.panelColor,
+          borderRadius: radius,
+          border: Border.all(color: style.borderColor, width: 1),
+        ),
+        child: content,
+      );
+    }
+
+    // 液态玻璃三层：投影 → 圆角裁切 + 背后模糊 → 半透明染色 + 斜向高光。
+    // 模糊必须夹在 ClipRRect 里，否则会把屏幕边缘之外的内容也一起拖进来。
+    final tint = style.panelColor;
+    final sheen = style.hasWallpaper
+        ? Colors.white.withOpacity(0.10)
+        : Colors.white.withOpacity(0.42);
+    return DecoratedBox(
       decoration: BoxDecoration(
-        color: style.panelColor,
-        borderRadius: BorderRadius.circular(kZRadius),
-        border: Border.all(color: style.borderColor, width: 1),
+        borderRadius: radius,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.12),
+            blurRadius: 22,
+            offset: const Offset(0, 10),
+          ),
+        ],
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: children,
+      child: ClipRRect(
+        borderRadius: radius,
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: kZGlassBlur, sigmaY: kZGlassBlur),
+          child: Container(
+            decoration: BoxDecoration(
+              borderRadius: radius,
+              border: Border.all(color: style.borderColor, width: 1),
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [Color.alphaBlend(sheen, tint), tint],
+              ),
+            ),
+            child: content,
+          ),
+        ),
       ),
     );
   }
@@ -610,7 +680,7 @@ class ZAppBar extends StatelessWidget implements PreferredSizeWidget {
               ),
             ],
           );
-    return AppBar(
+    final appBar = AppBar(
       leading: leading,
       automaticallyImplyLeading: automaticallyImplyLeading,
       title: titleWidget,
@@ -618,7 +688,12 @@ class ZAppBar extends StatelessWidget implements PreferredSizeWidget {
       bottom: bottom,
       elevation: elevation ?? 0,
       scrolledUnderElevation: scrolledUnderElevation ?? 0,
-      backgroundColor: backgroundColor ?? (hasWallpaper ? Colors.transparent : null),
+      backgroundColor: backgroundColor ??
+          (kZGlass
+              ? (hasWallpaper
+                  ? Colors.transparent
+                  : Theme.of(context).colorScheme.surface.withOpacity(0.55))
+              : (hasWallpaper ? Colors.transparent : null)),
       foregroundColor: foregroundColor ?? (hasWallpaper ? Colors.white : null),
       systemOverlayStyle: systemOverlayStyle ??
           (hasWallpaper
@@ -628,6 +703,15 @@ class ZAppBar extends StatelessWidget implements PreferredSizeWidget {
                   statusBarBrightness: Brightness.dark,
                 )
               : null),
+    );
+
+    // 液态玻璃：顶栏也吃一层背景模糊，滚动时才有「内容从玻璃下穿过」的感觉
+    if (!kZGlass) return appBar;
+    return ClipRect(
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: kZGlassBlur, sigmaY: kZGlassBlur),
+        child: appBar,
+      ),
     );
   }
 }

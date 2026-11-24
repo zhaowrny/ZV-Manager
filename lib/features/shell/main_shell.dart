@@ -13,8 +13,11 @@ import '../settings/settings_page.dart';
 import '../terminal/terminal_page.dart';
 import '../../core/l10n/strings.dart';
 import '../../core/widgets/z_widgets.dart';
+import 'pill_nav_bar.dart';
 
-/// 主导航壳：底部导航「服务器 · 控制台 · 玩家 · 模组 · 终端 · 我的」（M4）。
+/// 主导航壳：底部悬浮胶囊导航「服务器 · 控制台 · 玩家 · 模组 · 我的」（M4）。
+///
+/// 「控制台」页签内合并了 RCON 控制台与 SSH 终端，通过页内分段切换。
 class MainShell extends StatefulWidget {
   const MainShell({super.key});
 
@@ -25,86 +28,47 @@ class MainShell extends StatefulWidget {
 class _MainShellState extends State<MainShell> {
   int _index = 0;
 
+  static const _selectedIcons = [
+    Icons.dns,
+    Icons.terminal,
+    Icons.group,
+    Icons.extension,
+    Icons.settings,
+  ];
+
+  static const _unselectedIcons = [
+    Icons.dns_outlined,
+    Icons.terminal_outlined,
+    Icons.group_outlined,
+    Icons.extension_outlined,
+    Icons.settings_outlined,
+  ];
+
   @override
   Widget build(BuildContext context) {
     final en = context.watch<LanguageProvider>().isEnglish;
     final hasWallpaper = context.watch<WallpaperProvider>().hasWallpaper;
     final labels = en
-        ? ['Servers', 'Console', 'Players', 'Mods', 'Terminal', 'Me']
-        : ['服务器', '控制台', '玩家', '模组', '终端', '我的'];
+        ? ['Servers', 'Console', 'Players', 'Mods', 'Me']
+        : ['服务器', '控制台', '玩家', '模组', '我的'];
     final pages = [
       const DashboardPage(),
       const _ConsoleTab(),
       const _PlayerTab(),
       const ModListPage(),
-      const TerminalPage(),
       const SettingsPage(),
     ];
     return Scaffold(
       body: IndexedStack(index: _index, children: pages),
-      bottomNavigationBar: _buildNavBar(context, hasWallpaper, labels),
-    );
-  }
-
-  /// 底部导航栏：无壁纸走主题（绿色选中态）；有壁纸时半透明深底 + 白色图标/文字，保持 ZL2 沉浸感。
-  Widget _buildNavBar(BuildContext context, bool hasWallpaper, List<String> labels) {
-    final navBar = NavigationBar(
-      selectedIndex: _index,
-      onDestinationSelected: (i) => setState(() => _index = i),
-      destinations: [
-        for (var i = 0; i < 6; i++)
-          NavigationDestination(
-            icon: _navIcon(i, false),
-            selectedIcon: _navIcon(i, true),
-            label: labels[i],
-          ),
-      ],
-    );
-
-    if (!hasWallpaper) return navBar; // 使用 app_theme 中的 ZL2 绿主题
-
-    final wallpaperNavTheme = NavigationBarThemeData(
-      height: 72,
-      elevation: 0,
-      backgroundColor: Colors.black.withOpacity(0.38),
-      surfaceTintColor: Colors.transparent,
-      indicatorColor: Colors.white.withOpacity(0.18),
-      indicatorShape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.all(Radius.circular(16)),
+      bottomNavigationBar: PillNavBar(
+        selectedIndex: _index,
+        labels: labels,
+        selectedIcons: _selectedIcons,
+        unselectedIcons: _unselectedIcons,
+        onSelected: (i) => setState(() => _index = i),
+        hasWallpaper: hasWallpaper,
       ),
-      labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
-      labelTextStyle: WidgetStateProperty.resolveWith((states) {
-        final selected = states.contains(WidgetState.selected);
-        return TextStyle(
-          fontSize: 12,
-          fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
-          color: selected ? Colors.white : Colors.white.withOpacity(0.62),
-        );
-      }),
-      iconTheme: WidgetStateProperty.resolveWith((states) {
-        final selected = states.contains(WidgetState.selected);
-        return IconThemeData(
-          size: 24,
-          color: selected ? Colors.white : Colors.white.withOpacity(0.62),
-        );
-      }),
     );
-    return Theme(
-      data: Theme.of(context).copyWith(navigationBarTheme: wallpaperNavTheme),
-      child: navBar,
-    );
-  }
-
-  Widget _navIcon(int i, bool selected) {
-    final list = [
-      [Icons.dns_outlined, Icons.dns],
-      [Icons.terminal_outlined, Icons.terminal],
-      [Icons.group_outlined, Icons.group],
-      [Icons.extension_outlined, Icons.extension],
-      [Icons.terminal, Icons.terminal],
-      [Icons.settings_outlined, Icons.settings],
-    ];
-    return Icon(list[i][selected ? 1 : 0]);
   }
 }
 
@@ -113,8 +77,14 @@ class _TabScaffold extends StatelessWidget {
   final String title;
   final String? subtitle;
   final Widget child;
+  final PreferredSizeWidget? bottom;
 
-  const _TabScaffold({required this.title, required this.child, this.subtitle});
+  const _TabScaffold({
+    required this.title,
+    required this.child,
+    this.subtitle,
+    this.bottom,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -136,43 +106,115 @@ class _TabScaffold extends StatelessWidget {
                           ?.copyWith(color: Theme.of(context).hintColor)),
                 ],
               ),
+        bottom: bottom,
       ),
       body: child,
     );
   }
 }
 
-/// 控制台页签：选中服务器后通过 RconProvider 拿连接。
-class _ConsoleTab extends StatelessWidget {
+/// 控制台页签：RCON 控制台与 SSH 终端合并为同一个页签。
+///
+/// 顶部用分段控件切换两种模式；两者用 IndexedStack 保活，
+/// 来回切换不会丢失控制台输出或终端会话。
+class _ConsoleTab extends StatefulWidget {
   const _ConsoleTab();
+
+  @override
+  State<_ConsoleTab> createState() => _ConsoleTabState();
+}
+
+class _ConsoleTabState extends State<_ConsoleTab> {
+  /// 0 = RCON 控制台，1 = SSH 终端
+  int _mode = 0;
+
+  PreferredSizeWidget _switch() => _ConsoleModeSwitch(
+        value: _mode,
+        onChanged: (v) => setState(() => _mode = v),
+      );
 
   @override
   Widget build(BuildContext context) {
     final holder = context.watch<SelectedServerHolder>();
     final rcon = context.read<RconProvider>();
     final server = holder.server;
+
+    Widget consoleTab;
     if (server == null) {
-      return _TabScaffold(title: S.t('控制台'), child: const _NeedServerHint());
+      consoleTab = _TabScaffold(
+        title: S.t('控制台'),
+        bottom: _switch(),
+        child: const _NeedServerHint(),
+      );
+    } else {
+      consoleTab = FutureBuilder<RconClient>(
+        future: rcon.getClient(server),
+        builder: (context, snap) {
+          if (snap.connectionState != ConnectionState.done) {
+            return _TabScaffold(
+              title: S.t('控制台'),
+              subtitle: server.name,
+              bottom: _switch(),
+              child: const Center(child: CircularProgressIndicator()),
+            );
+          }
+          if (snap.hasError) {
+            return _TabScaffold(
+              title: S.t('控制台'),
+              subtitle: server.name,
+              bottom: _switch(),
+              child: Center(
+                  child: Text(S.f('RCON 连接失败：{0}', [snap.error.toString()]))),
+            );
+          }
+          return ConsolePage(rconClient: snap.data!, bottom: _switch());
+        },
+      );
     }
-    return FutureBuilder<RconClient>(
-      future: rcon.getClient(server),
-      builder: (context, snap) {
-        if (snap.connectionState != ConnectionState.done) {
-          return _TabScaffold(
-            title: S.t('控制台'),
-            subtitle: server.name,
-            child: const Center(child: CircularProgressIndicator()),
-          );
-        }
-        if (snap.hasError) {
-          return _TabScaffold(
-            title: S.t('控制台'),
-            subtitle: server.name,
-            child: Center(child: Text(S.f('RCON 连接失败：{0}', [snap.error.toString()]))),
-          );
-        }
-        return ConsolePage(rconClient: snap.data!); // 自带 AppBar
-      },
+
+    return IndexedStack(
+      index: _mode,
+      children: [
+        consoleTab,
+        TerminalPage(bottom: _switch()),
+      ],
+    );
+  }
+}
+
+/// 「控制台 / 终端」分段切换条，放在 AppBar 的 bottom 槽位。
+class _ConsoleModeSwitch extends StatelessWidget
+    implements PreferredSizeWidget {
+  final int value;
+  final ValueChanged<int> onChanged;
+
+  const _ConsoleModeSwitch({required this.value, required this.onChanged});
+
+  static const double _height = 52;
+
+  @override
+  Size get preferredSize => const Size.fromHeight(_height);
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: _height,
+      child: Center(
+        child: SegmentedButton<int>(
+          segments: const [
+            ButtonSegment(value: 0, label: T('控制台')),
+            ButtonSegment(value: 1, label: T('终端')),
+          ],
+          selected: {value},
+          showSelectedIcon: false,
+          onSelectionChanged: (selection) => onChanged(selection.first),
+          style: SegmentedButton.styleFrom(
+            visualDensity: VisualDensity.compact,
+            textStyle:
+                const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+          ),
+        ),
+      ),
     );
   }
 }
@@ -203,7 +245,8 @@ class _PlayerTab extends StatelessWidget {
           return _TabScaffold(
             title: S.t('玩家'),
             subtitle: server.name,
-            child: Center(child: Text(S.f('RCON 连接失败：{0}', [snap.error.toString()]))),
+            child: Center(
+                child: Text(S.f('RCON 连接失败：{0}', [snap.error.toString()]))),
           );
         }
         return PlayerListPage(rconClient: snap.data!); // 自带 AppBar

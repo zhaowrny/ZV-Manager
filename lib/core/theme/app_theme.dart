@@ -4,7 +4,7 @@ enum AppThemeMode { light, dark, system }
 
 /// 可选主题配色：切换种子色即改变全站强调色与 surface 色调。
 enum AppThemeColor {
-  zl2Green('ZL2 绿', Color(0xFF4CAF50)),
+  zl2Green('绿', Color(0xFF4CAF50)),
   oceanBlue('海蓝', Color(0xFF2196F3)),
   violet('星紫', Color(0xFF9C27B0)),
   sunsetOrange('暖橙', Color(0xFFFF9800)),
@@ -26,7 +26,7 @@ class AppTheme {
   static const radiusM = 16.0; // 卡片 / 列表容器
   static const radiusL = 28.0; // 弹窗 / 底部面板 / FAB
 
-  /// 默认配色（ZL2 绿）的亮/暗主题：保留 getter，兼容既有调用与官方测试。
+  /// 默认配色（绿）的亮/暗主题：保留 getter，兼容既有调用与官方测试。
   static ThemeData get lightTheme => lightThemeFor(AppThemeColor.zl2Green);
   static ThemeData get darkTheme => darkThemeFor(AppThemeColor.zl2Green);
 
@@ -51,20 +51,31 @@ class AppTheme {
       dynamicSchemeVariant: DynamicSchemeVariant.fidelity,
     ).copyWith(
       surface: isDark ? t(const Color(0xFF101310)) : t(const Color(0xFFF7F9F7)),
-      surfaceContainerLowest: isDark ? t(const Color(0xFF0B0D0B)) : Colors.white,
-      surfaceContainerLow: isDark ? t(const Color(0xFF141714)) : t(const Color(0xFFF1F4F1)),
-      surfaceContainer: isDark ? t(const Color(0xFF1A1D1A)) : t(const Color(0xFFEBEFEB)),
-      surfaceContainerHigh: isDark ? t(const Color(0xFF222622)) : t(const Color(0xFFE3E8E3)),
-      surfaceContainerHighest: isDark ? t(const Color(0xFF2A2F2A)) : t(const Color(0xFFDCE2DC)),
+      surfaceContainerLowest:
+          isDark ? t(const Color(0xFF0B0D0B)) : Colors.white,
+      surfaceContainerLow:
+          isDark ? t(const Color(0xFF141714)) : t(const Color(0xFFF1F4F1)),
+      surfaceContainer:
+          isDark ? t(const Color(0xFF1A1D1A)) : t(const Color(0xFFEBEFEB)),
+      surfaceContainerHigh:
+          isDark ? t(const Color(0xFF222622)) : t(const Color(0xFFE3E8E3)),
+      surfaceContainerHighest:
+          isDark ? t(const Color(0xFF2A2F2A)) : t(const Color(0xFFDCE2DC)),
     );
 
-    final cardColor = isDark ? scheme.surfaceContainer : scheme.surfaceContainerLowest;
-    final outline = isDark ? t(const Color(0xFF2E332E)) : t(const Color(0xFFDDE3DD));
+    final cardColor =
+        isDark ? scheme.surfaceContainer : scheme.surfaceContainerLowest;
+    final outline =
+        isDark ? t(const Color(0xFF2E332E)) : t(const Color(0xFFDDE3DD));
 
-    final shapeXS = RoundedRectangleBorder(borderRadius: BorderRadius.circular(radiusXS));
-    final shapeS = RoundedRectangleBorder(borderRadius: BorderRadius.circular(radiusS));
-    final shapeM = RoundedRectangleBorder(borderRadius: BorderRadius.circular(radiusM));
-    final shapeL = RoundedRectangleBorder(borderRadius: BorderRadius.circular(radiusL));
+    final shapeXS =
+        RoundedRectangleBorder(borderRadius: BorderRadius.circular(radiusXS));
+    final shapeS =
+        RoundedRectangleBorder(borderRadius: BorderRadius.circular(radiusS));
+    final shapeM =
+        RoundedRectangleBorder(borderRadius: BorderRadius.circular(radiusM));
+    final shapeL =
+        RoundedRectangleBorder(borderRadius: BorderRadius.circular(radiusL));
 
     return ThemeData(
       useMaterial3: true,
@@ -78,30 +89,30 @@ class AppTheme {
             displayColor: scheme.onSurface,
           )
           .copyWith(
-        titleLarge: TextStyle(
-          fontSize: 22,
-          fontWeight: FontWeight.w700,
-          letterSpacing: -0.2,
-          color: scheme.onSurface,
-        ),
-        titleMedium: TextStyle(
-          fontSize: 16,
-          fontWeight: FontWeight.w600,
-          letterSpacing: 0,
-          color: scheme.onSurface,
-        ),
-        bodyMedium: TextStyle(
-          fontSize: 14,
-          height: 1.5,
-          color: scheme.onSurface,
-        ),
-        labelLarge: TextStyle(
-          fontSize: 14,
-          fontWeight: FontWeight.w600,
-          letterSpacing: 0.1,
-          color: scheme.onSurface,
-        ),
-      ),
+            titleLarge: TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.w700,
+              letterSpacing: -0.2,
+              color: scheme.onSurface,
+            ),
+            titleMedium: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+              letterSpacing: 0,
+              color: scheme.onSurface,
+            ),
+            bodyMedium: TextStyle(
+              fontSize: 14,
+              height: 1.5,
+              color: scheme.onSurface,
+            ),
+            labelLarge: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              letterSpacing: 0.1,
+              color: scheme.onSurface,
+            ),
+          ),
       appBarTheme: AppBarTheme(
         centerTitle: false,
         elevation: 0,
@@ -128,8 +139,10 @@ class AppTheme {
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: isDark ? scheme.surfaceContainerHigh : scheme.surfaceContainerLow,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        fillColor:
+            isDark ? scheme.surfaceContainerHigh : scheme.surfaceContainerLow,
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(radiusS),
           borderSide: BorderSide.none,
@@ -176,11 +189,14 @@ class AppTheme {
       ),
       dialogTheme: DialogThemeData(
         shape: shapeL,
-        backgroundColor: isDark ? scheme.surfaceContainerHigh : scheme.surfaceContainerLowest,
+        backgroundColor: isDark
+            ? scheme.surfaceContainerHigh
+            : scheme.surfaceContainerLowest,
         surfaceTintColor: Colors.transparent,
       ),
       bottomSheetTheme: BottomSheetThemeData(
-        backgroundColor: isDark ? scheme.surfaceContainer : scheme.surfaceContainerLowest,
+        backgroundColor:
+            isDark ? scheme.surfaceContainer : scheme.surfaceContainerLowest,
         surfaceTintColor: Colors.transparent,
         shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
@@ -194,10 +210,12 @@ class AppTheme {
       navigationBarTheme: NavigationBarThemeData(
         height: 72,
         elevation: 0,
-        backgroundColor: isDark ? scheme.surfaceContainer : scheme.surfaceContainerLowest,
+        backgroundColor:
+            isDark ? scheme.surfaceContainer : scheme.surfaceContainerLowest,
         surfaceTintColor: Colors.transparent,
         // ZL2 风格：选中项用主色绿 + 浅绿圆角胶囊指示器
-        indicatorColor: isDark ? scheme.primary.withOpacity(0.22) : scheme.primaryContainer,
+        indicatorColor:
+            isDark ? scheme.primary.withOpacity(0.22) : scheme.primaryContainer,
         indicatorShape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.all(Radius.circular(16)),
         ),
@@ -243,7 +261,9 @@ class AppTheme {
       popupMenuTheme: PopupMenuThemeData(
         shape: shapeM,
         elevation: 2,
-        color: isDark ? scheme.surfaceContainerHigh : scheme.surfaceContainerLowest,
+        color: isDark
+            ? scheme.surfaceContainerHigh
+            : scheme.surfaceContainerLowest,
         surfaceTintColor: Colors.transparent,
       ),
       expansionTileTheme: ExpansionTileThemeData(
@@ -276,13 +296,18 @@ class AppTheme {
       ),
       switchTheme: SwitchThemeData(
         thumbColor: WidgetStateProperty.resolveWith((states) =>
-            states.contains(WidgetState.selected) ? scheme.onPrimary : scheme.outline),
+            states.contains(WidgetState.selected)
+                ? scheme.onPrimary
+                : scheme.outline),
         trackColor: WidgetStateProperty.resolveWith((states) =>
-            states.contains(WidgetState.selected) ? scheme.primary : scheme.surfaceContainerHighest),
+            states.contains(WidgetState.selected)
+                ? scheme.primary
+                : scheme.surfaceContainerHighest),
       ),
       bottomNavigationBarTheme: BottomNavigationBarThemeData(
         elevation: 0,
-        backgroundColor: isDark ? scheme.surfaceContainer : scheme.surfaceContainerLowest,
+        backgroundColor:
+            isDark ? scheme.surfaceContainer : scheme.surfaceContainerLowest,
         selectedItemColor: scheme.primary,
         unselectedItemColor: scheme.onSurfaceVariant,
         type: BottomNavigationBarType.fixed,

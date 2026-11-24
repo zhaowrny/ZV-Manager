@@ -1,6 +1,6 @@
 name: zv_manager
 description: Minecraft服务器管理工具
-version: 2.1.0+17
+version: 2.2.0+18
 
 environment:
   sdk: ">=3.0.0 <4.0.0"
@@ -10,7 +10,7 @@ dependencies:
     path: third_party/dartssh2
   xterm: ^4.0.0
   dio: ^5.4.0
-  archive: ^3.6.0
+  archive: ^4.7.1
   yaml: ^3.1.2
   sqflite: ^2.3.0
   path: ^1.9.0
@@ -20,22 +20,22 @@ dependencies:
     sdk: flutter
   provider: ^6.1.2
   shared_preferences: ^2.3.3
-  flutter_secure_storage: ^9.2.4
-  package_info_plus: ^8.0.0
+  # 9.x -> 10.x 会自动迁移旧加密算法数据；v11 移除了旧算法，
+  # 需先用 v10 完成迁移，下个大版本再升 v11
+  flutter_secure_storage: ^10.3.1
+  package_info_plus: ^10.2.2
   video_player: ^2.8.1
   image_picker: ^1.0.4
-  file_picker: ^8.1.0
+  file_picker: ^13.4.0
   path_provider: ^2.1.1
   # 系统通知：服务器状态监控提醒（离线 / 恢复 / 玩家上线）
-  # 17.x 是兼容面最广的一档（sdk >=2.17），不锁死高版本 Flutter
-  flutter_local_notifications: ^17.2.4
+  flutter_local_notifications: ^23.0.3
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  flutter_lints: ^5.0.0
+  flutter_lints: ^6.0.0
 flutter:
   uses-material-design: true
   assets:
-    - assets/creator_zavatar.png
-    - assets/logo.png
+    - assets/

@@ -28,7 +28,8 @@ class ModProvider extends ChangeNotifier {
   List<RemoteJarFile> get files {
     final list = _files.values.toList();
     list.sort((a, b) => switch (sortMode) {
-          ModSortMode.name => a.fileName.toLowerCase().compareTo(b.fileName.toLowerCase()),
+          ModSortMode.name =>
+            a.fileName.toLowerCase().compareTo(b.fileName.toLowerCase()),
           ModSortMode.size => b.size.compareTo(a.size),
           ModSortMode.mtime => b.mtime.compareTo(a.mtime),
         });
@@ -63,7 +64,8 @@ class ModProvider extends ChangeNotifier {
           fileName: item.filename,
           remotePath: '$_remoteBase/${item.filename}',
           size: item.attr.size ?? 0,
-          mtime: DateTime.fromMillisecondsSinceEpoch((item.attr.modifyTime ?? 0) * 1000),
+          mtime: DateTime.fromMillisecondsSinceEpoch(
+              (item.attr.modifyTime ?? 0) * 1000),
         );
       }
       // 后台解析元数据（复用本地缓存）

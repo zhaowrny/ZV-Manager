@@ -1,30 +1,78 @@
-// This is a basic Flutter widget test.
-//
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
-
+// 底部悬浮胶囊导航（PillNavBar）的冒烟测试：
+// 渲染 5 个页签、点击切换选中项、动画播完不出现布局异常。
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:zv_manager/main.dart';
+import 'package:zv_manager/core/theme/app_theme.dart';
+import 'package:zv_manager/features/shell/pill_nav_bar.dart';
+
+Widget _host(Widget child) => MaterialApp(
+      theme: AppTheme.lightTheme,
+      home: Scaffold(body: child),
+    );
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(const Bootstrap());
+  const labels = ['服务器', '控制台', '玩家', '模组', '我的'];
+  const selectedIcons = [
+    Icons.dns,
+    Icons.terminal,
+    Icons.group,
+    Icons.extension,
+    Icons.settings,
+  ];
+  const unselectedIcons = [
+    Icons.dns_outlined,
+    Icons.terminal_outlined,
+    Icons.group_outlined,
+    Icons.extension_outlined,
+    Icons.settings_outlined,
+  ];
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
+  testWidgets('底部导航渲染 5 个页签，点击切换选中态', (tester) async {
+    var index = 0;
 
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
-    await tester.pump();
+    await tester.pumpWidget(_host(
+      StatefulBuilder(
+        builder: (context, setState) => PillNavBar(
+          selectedIndex: index,
+          labels: labels,
+          selectedIcons: selectedIcons,
+          unselectedIcons: unselectedIcons,
+          onSelected: (i) => setState(() => index = i),
+          hasWallpaper: false,
+        ),
+      ),
+    ));
 
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+    for (final label in labels) {
+      expect(find.text(label), findsOneWidget);
+    }
+    // 终端已并入控制台页签，不再作为独立导航项
+    expect(find.text('终端'), findsNothing);
+    expect(index, 0);
+
+    // 未选中项只显示图标，点击图标区域切换
+    await tester.tap(find.byIcon(Icons.group_outlined));
+    await tester.pumpAndSettle();
+
+    expect(index, 2);
+    expect(find.byIcon(Icons.group), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('有壁纸样式下正常渲染', (tester) async {
+    await tester.pumpWidget(_host(
+      PillNavBar(
+        selectedIndex: 1,
+        labels: labels,
+        selectedIcons: selectedIcons,
+        unselectedIcons: unselectedIcons,
+        onSelected: (_) {},
+        hasWallpaper: true,
+      ),
+    ));
+
+    expect(find.byIcon(Icons.terminal), findsOneWidget);
+    expect(tester.takeException(), isNull);
   });
 }

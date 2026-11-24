@@ -66,6 +66,19 @@ class S {
     'SSH 用户名': 'SSH username',
     '例如 root': 'e.g. root',
     'SSH 密码': 'SSH password',
+    // ---- 演示服务器 ----
+    '演示服务器': 'Demo Server',
+    '添加演示服务器': 'Add Demo Server',
+    '移除演示服务器': 'Remove Demo Server',
+    '演示服务器已在列表中': 'Demo server is already in the list',
+    '演示服务器已添加，可在「服务器」页查看': 'Demo server added. Find it on the Servers tab.',
+    '演示服务器不在列表中': 'Demo server is not in the list',
+    '已移除演示服务器': 'Demo server removed',
+    '调试入口已开启': 'Debug entry unlocked',
+    '调试': 'Debug',
+    '不联网的本地模拟服务器（RCON + SSH + SFTP）':
+        'Offline local simulation (RCON + SSH + SFTP)',
+    '从服务器列表删除内置演示项': 'Remove the built-in demo entry from the server list',
     // ---- 模组管理 ----
     '依赖仓库': 'Dependency Repo',
     '按名称': 'By name',
@@ -167,8 +180,7 @@ class S {
     '选择视频': 'Pick video',
     '清除背景': 'Clear background',
     '界面显示语言': 'Display language',
-    '选择一张图片或一段视频作为应用背景':
-        'Pick an image or a video as the app background',
+    '选择一张图片或一段视频作为应用背景': 'Pick an image or a video as the app background',
     '使用教程（模组/终端等）': 'Tutorials (mods / terminal etc.)',
     // ---- 模板插值 ----
     '服务器「{0}」已断开连接！': 'Server "{0}" disconnected!',
@@ -545,8 +557,7 @@ class S {
     '赞助链接待配置': 'Sponsor link not configured yet',
     '加入官方 QQ 群': 'Join our QQ group',
     '与开发者和其他用户交流': 'Chat with the developer and other users',
-    '群号已复制，打开 QQ 搜索加群':
-        'Group number copied — open QQ and search to join',
+    '群号已复制，打开 QQ 搜索加群': 'Group number copied — open QQ and search to join',
     // ---- 多主题 / 胶囊开关 ----
     '深色模式': 'Dark mode',
     '跟随系统': 'Follow system',
@@ -556,7 +567,12 @@ class S {
         'Follows the system; turn off Follow system to set it manually',
     '随系统的深色 / 浅色设置自动切换': 'Switch automatically with the system theme',
     '切换全站强调色与界面色调': 'Change the accent color across the app',
-    'ZL2 绿': 'ZL2 Green',
+    '液态玻璃': 'Liquid glass',
+    '半透明毛玻璃面板 + 高光描边，开启后全站生效':
+        'Translucent frosted panels with a highlight edge, applied app-wide',
+    '已开启：面板、顶栏、底栏均为毛玻璃质感':
+        'On: panels, top bar and bottom bar use frosted glass',
+    '绿': 'Green',
     '海蓝': 'Ocean Blue',
     '星紫': 'Violet',
     '暖橙': 'Sunset Orange',
@@ -567,14 +583,11 @@ class S {
         'Periodically checks server status and pushes alerts on changes',
     '每 {0}检查一次 · 最近 {1}': 'Every {0} · last check {1}',
     '服务器离线提醒': 'Offline alerts',
-    '服务器掉线时推送系统通知':
-        'Send a system notification when a server goes offline',
+    '服务器掉线时推送系统通知': 'Send a system notification when a server goes offline',
     '服务器恢复提醒': 'Recovery alerts',
-    '服务器重新上线时推送通知':
-        'Send a notification when a server comes back online',
+    '服务器重新上线时推送通知': 'Send a notification when a server comes back online',
     '玩家上线提醒': 'Player join alerts',
-    '有新玩家进入服务器时推送通知':
-        'Send a notification when a player joins a server',
+    '有新玩家进入服务器时推送通知': 'Send a notification when a player joins a server',
     '检查间隔': 'Check interval',
     '间隔越短发现越快，对服务器的轮询压力也越大':
         'Shorter intervals detect changes faster but poll the server more',

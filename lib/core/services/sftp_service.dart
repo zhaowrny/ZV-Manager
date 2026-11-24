@@ -4,10 +4,14 @@ import 'package:dartssh2/dartssh2.dart';
 import 'dart:io' as io;
 import '../../providers/server_provider.dart';
 import '../../core/l10n/strings.dart';
+import 'demo_server.dart';
 
 /// 基于 dartssh2 的 SFTP 文件服务。
 /// 一次连接同时支持列目录 / 上传 / 下载 / 删除 / 重命名，
 /// 供模组管理（M1）与下载完成后自动上传（M2）复用。
+///
+/// 演示服务器（`ServerConfig.isDemo`）使用内存文件系统，
+/// 不建立真实 SSH 连接，便于在无服务器环境下测试完整流程。
 class SftpService {
   SSHClient? _client;
   SftpClient? _sftp;
@@ -15,12 +19,23 @@ class SftpService {
   /// 当前连接绑定的服务器，用于判断能否复用已有连接
   ServerConfig? _bound;
 
-  bool get isConnected => _client != null && !_client!.isClosed;
+  bool _demoConnected = false;
+  final DemoFileSystem _demoFs = DemoFileSystem();
+
+  bool get isConnected =>
+      _demoConnected || (_client != null && !_client!.isClosed);
 
   /// 连接到指定服务器的 SSH。失败抛异常。
   ///
   /// 如果已经连到同一台服务器则直接复用，避免重复握手（SSH 握手较慢）。
   Future<void> connect(ServerConfig server) async {
+    if (server.isDemo) {
+      await disconnect();
+      // 模拟握手耗时
+      await Future<void>.delayed(const Duration(milliseconds: 180));
+      _demoConnected = true;
+      return;
+    }
     if (isConnected && _bound?.id == server.id) return;
     await disconnect();
     final socket = await SSHSocket.connect(
@@ -40,6 +55,7 @@ class SftpService {
 
   /// 列出目录内容。
   Future<List<SftpName>> listDir(String path) async {
+    if (_demoConnected) return _demoFs.list(path);
     return _requireSftp().listdir(path);
   }
 
@@ -48,10 +64,16 @@ class SftpService {
   /// 采用 create + truncate 模式覆盖写入；流式读取本地文件，
   /// 大文件不会一次性读进内存。
   Future<void> upload(String localPath, String remotePath) async {
+    if (_demoConnected) {
+      await _demoFs.upload(localPath, remotePath);
+      return;
+    }
     final sftp = _requireSftp();
     final file = await sftp.open(
       remotePath,
-      mode: SftpFileOpenMode.create | SftpFileOpenMode.truncate | SftpFileOpenMode.write,
+      mode: SftpFileOpenMode.create |
+          SftpFileOpenMode.truncate |
+          SftpFileOpenMode.write,
     );
     try {
       final local = io.File(localPath);
@@ -75,6 +97,10 @@ class SftpService {
     String localPath, {
     void Function(int, int)? onProgress,
   }) async {
+    if (_demoConnected) {
+      await _demoFs.download(remotePath, localPath, onProgress: onProgress);
+      return;
+    }
     final sftp = _requireSftp();
     final stat = await sftp.stat(remotePath);
     final total = stat.size ?? 0;
@@ -103,6 +129,9 @@ class SftpService {
     String remotePath, {
     int maxBytes = 2 * 1024 * 1024,
   }) async {
+    if (_demoConnected) {
+      return _demoFs.readString(remotePath, maxBytes: maxBytes);
+    }
     final sftp = _requireSftp();
     final file = await sftp.open(remotePath, mode: SftpFileOpenMode.read);
     try {
@@ -111,7 +140,9 @@ class SftpService {
         buf.add(chunk);
       }
       final bytes = buf.takeBytes();
-      if (bytes.length <= maxBytes) return utf8.decode(bytes, allowMalformed: true);
+      if (bytes.length <= maxBytes) {
+        return utf8.decode(bytes, allowMalformed: true);
+      }
       // 只保留末尾 maxBytes，并跳过半个字符
       var start = bytes.length - maxBytes;
       while (start < bytes.length && (bytes[start] & 0xC0) == 0x80) {
@@ -124,16 +155,28 @@ class SftpService {
   }
 
   Future<void> delete(String remotePath) async {
+    if (_demoConnected) {
+      _demoFs.delete(remotePath);
+      return;
+    }
     await _requireSftp().remove(remotePath);
   }
 
   Future<void> rename(String remotePath, String newName) async {
+    if (_demoConnected) {
+      _demoFs.rename(remotePath, newName);
+      return;
+    }
     final sftp = _requireSftp();
     final parent = remotePath.substring(0, remotePath.lastIndexOf('/') + 1);
     await sftp.rename(remotePath, '$parent$newName');
   }
 
   Future<void> mkdir(String remotePath) async {
+    if (_demoConnected) {
+      _demoFs.mkdir(remotePath);
+      return;
+    }
     try {
       await _requireSftp().mkdir(remotePath);
     } catch (_) {
@@ -150,6 +193,7 @@ class SftpService {
   }
 
   Future<void> disconnect() async {
+    _demoConnected = false;
     _sftp = null;
     _client?.close();
     _client = null;

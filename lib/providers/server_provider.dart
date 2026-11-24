@@ -21,6 +21,9 @@ class ServerConfig {
   final String sshUser;
   final String sshPassword;
 
+  /// 是否为内置的演示服务器：连接时走本地模拟，不会访问网络。
+  final bool isDemo;
+
   ServerConfig({
     required this.id,
     required this.name,
@@ -31,6 +34,7 @@ class ServerConfig {
     this.sshPort = 22,
     this.sshUser = '',
     this.sshPassword = '',
+    this.isDemo = false,
   });
 
   /// 是否具备模组/终端功能所需的 SSH 配置。
@@ -46,6 +50,7 @@ class ServerConfig {
         'sshPort': sshPort,
         'sshUser': sshUser,
         'sshPassword': sshPassword,
+        'isDemo': isDemo,
       };
 
   /// 从旧版本存档反序列化时，SSH 字段可能不存在，全部给默认值以兼容升级。
@@ -59,6 +64,7 @@ class ServerConfig {
         sshPort: json['sshPort'] ?? 22,
         sshUser: json['sshUser'] ?? '',
         sshPassword: json['sshPassword'] ?? '',
+        isDemo: json['isDemo'] ?? false,
       );
 }
 

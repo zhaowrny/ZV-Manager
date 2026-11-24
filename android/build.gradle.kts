@@ -64,18 +64,18 @@ tasks.register<Delete>("clean") {
     delete(rootProject.layout.buildDirectory)
 }
 
-// 强制所有子项目（含插件模块）使用 Java 17，消除 "源值 8/目标值 8 已过时" 警告
+// 强制所有子项目（含插件模块）使用 Java 21，消除 "源值 8/目标值 8 已过时" 警告
 gradle.beforeProject {
     if (project != rootProject) {
         tasks.withType(JavaCompile::class.java).configureEach {
-            sourceCompatibility = JavaVersion.VERSION_17.toString()
-            targetCompatibility = JavaVersion.VERSION_17.toString()
+            sourceCompatibility = JavaVersion.VERSION_21.toString()
+            targetCompatibility = JavaVersion.VERSION_21.toString()
         }
         plugins.withId("com.android.library") {
             extensions.findByType(com.android.build.api.dsl.LibraryExtension::class.java)?.apply {
                 compileOptions {
-                    sourceCompatibility = JavaVersion.VERSION_17
-                    targetCompatibility = JavaVersion.VERSION_17
+                    sourceCompatibility = JavaVersion.VERSION_21
+                    targetCompatibility = JavaVersion.VERSION_21
                 }
             }
         }

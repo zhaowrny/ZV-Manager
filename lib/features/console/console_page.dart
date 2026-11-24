@@ -13,7 +13,11 @@ import 'package:provider/provider.dart';
 /// 真正的持久化日志请看「设置 → 服务器日志」（读服务器 logs 目录）。
 class ConsolePage extends StatefulWidget {
   final RconClient rconClient;
-  const ConsolePage({super.key, required this.rconClient});
+
+  /// 可选的 AppBar bottom（如「控制台 / 终端」切换条）。
+  final PreferredSizeWidget? bottom;
+
+  const ConsolePage({super.key, required this.rconClient, this.bottom});
 
   @override
   State<ConsolePage> createState() => _ConsolePageState();
@@ -36,8 +40,21 @@ class _ConsolePageState extends State<ConsolePage> {
 
   /// Tab 补全候选：常用服务端命令
   static const _commands = [
-    'help', 'list', 'stop', 'say', 'op', 'deop', 'kick', 'ban', 'pardon',
-    'gamemode', 'tp', 'give', 'time set', 'weather', 'difficulty',
+    'help',
+    'list',
+    'stop',
+    'say',
+    'op',
+    'deop',
+    'kick',
+    'ban',
+    'pardon',
+    'gamemode',
+    'tp',
+    'give',
+    'time set',
+    'weather',
+    'difficulty',
   ];
 
   @override
@@ -46,12 +63,14 @@ class _ConsolePageState extends State<ConsolePage> {
     // 连接状态变化直接写入输出区，用户能看到断线与恢复的时间点
     widget.rconClient.onDisconnected = () {
       if (mounted) {
-        setState(() => _append(_LogLine(text: S.t('[警告] 连接断开，正在重连...'), isError: true)));
+        setState(() =>
+            _append(_LogLine(text: S.t('[警告] 连接断开，正在重连...'), isError: true)));
       }
     };
     widget.rconClient.onReconnected = () {
       if (mounted) {
-        setState(() => _append(_LogLine(text: S.t('[信息] 重连成功'), isCommand: false)));
+        setState(
+            () => _append(_LogLine(text: S.t('[信息] 重连成功'), isCommand: false)));
       }
     };
     _loadPresets();
@@ -116,7 +135,10 @@ class _ConsolePageState extends State<ConsolePage> {
       });
     } catch (e) {
       setState(() {
-        _append(_LogLine(text: S.f('[错误] {0}', [e.toString()]), isCommand: false, isError: true));
+        _append(_LogLine(
+            text: S.f('[错误] {0}', [e.toString()]),
+            isCommand: false,
+            isError: true));
       });
     }
     _scrollToBottom();
@@ -130,10 +152,12 @@ class _ConsolePageState extends State<ConsolePage> {
     final matches = _commands.where((c) => c.startsWith(input)).toList();
     if (matches.length == 1) {
       _controller.text = matches.first;
-      _controller.selection = TextSelection.fromPosition(TextPosition(offset: matches.first.length));
+      _controller.selection = TextSelection.fromPosition(
+          TextPosition(offset: matches.first.length));
     } else if (matches.length > 1) {
       setState(() {
-        _append(_LogLine(text: S.f('建议：{0}', [matches.join(", ")]), isCommand: false));
+        _append(_LogLine(
+            text: S.f('建议：{0}', [matches.join(", ")]), isCommand: false));
       });
       _scrollToBottom();
     }
@@ -149,8 +173,10 @@ class _ConsolePageState extends State<ConsolePage> {
       } else {
         _historyIndex = (_historyIndex + 1).clamp(0, _history.length);
       }
-      _controller.text = _historyIndex < _history.length ? _history[_historyIndex] : '';
-      _controller.selection = TextSelection.fromPosition(TextPosition(offset: _controller.text.length));
+      _controller.text =
+          _historyIndex < _history.length ? _history[_historyIndex] : '';
+      _controller.selection = TextSelection.fromPosition(
+          TextPosition(offset: _controller.text.length));
     });
   }
 
@@ -180,6 +206,7 @@ class _ConsolePageState extends State<ConsolePage> {
       backgroundColor: hasWallpaper ? Colors.transparent : null,
       appBar: ZAppBar(
         title: T('服务器控制台'),
+        bottom: widget.bottom,
         backgroundColor: hasWallpaper ? Colors.transparent : null,
         actions: [
           IconButton(
@@ -269,9 +296,13 @@ class _ConsolePageState extends State<ConsolePage> {
                         focusNode: FocusNode(),
                         onKeyEvent: (event) {
                           if (event is KeyDownEvent) {
-                            if (event.logicalKey == LogicalKeyboardKey.arrowUp) _onHistoryNavigate(true);
-                            if (event.logicalKey == LogicalKeyboardKey.arrowDown) _onHistoryNavigate(false);
-                            if (event.logicalKey == LogicalKeyboardKey.tab) _onTabPressed();
+                            if (event.logicalKey == LogicalKeyboardKey.arrowUp)
+                              _onHistoryNavigate(true);
+                            if (event.logicalKey ==
+                                LogicalKeyboardKey.arrowDown)
+                              _onHistoryNavigate(false);
+                            if (event.logicalKey == LogicalKeyboardKey.tab)
+                              _onTabPressed();
                           }
                         },
                         child: TextField(
@@ -329,7 +360,9 @@ class _LogLine {
 Color? _logLevelColor(String text) {
   final upper = text.toUpperCase();
   // 兼容 [WARN]、[WARN/...]、WARN : 等常见格式
-  if (upper.contains('ERROR') || upper.contains('FATAL') || upper.contains('SEVERE')) {
+  if (upper.contains('ERROR') ||
+      upper.contains('FATAL') ||
+      upper.contains('SEVERE')) {
     return Colors.red;
   }
   if (upper.contains(RegExp(r'\bWARN(ING)?\b'))) {
@@ -426,10 +459,12 @@ class _PresetManageSheetState extends State<_PresetManageSheet> {
     if (result == null || !mounted) return;
     setState(() {
       if (preset == null) {
-        _presets.add(QuickCommandPreset(label: result.label, command: result.command));
+        _presets.add(
+            QuickCommandPreset(label: result.label, command: result.command));
       } else {
         final index = _presets.indexOf(preset);
-        _presets[index] = QuickCommandPreset(label: result.label, command: result.command);
+        _presets[index] =
+            QuickCommandPreset(label: result.label, command: result.command);
       }
     });
   }
@@ -438,7 +473,8 @@ class _PresetManageSheetState extends State<_PresetManageSheet> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Padding(
-      padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+      padding:
+          EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
       child: SizedBox(
         height: MediaQuery.of(context).size.height * 0.6,
         child: Column(
@@ -478,9 +514,11 @@ class _PresetManageSheetState extends State<_PresetManageSheet> {
                                 onPressed: () => _editPreset(preset: preset),
                               ),
                               IconButton(
-                                icon: const Icon(Icons.delete_outline, size: 20),
+                                icon:
+                                    const Icon(Icons.delete_outline, size: 20),
                                 tooltip: S.t('删除'),
-                                onPressed: () => setState(() => _presets.removeAt(i)),
+                                onPressed: () =>
+                                    setState(() => _presets.removeAt(i)),
                               ),
                             ],
                           ),
@@ -527,8 +565,10 @@ class _PresetEditDialog extends StatefulWidget {
 }
 
 class _PresetEditDialogState extends State<_PresetEditDialog> {
-  late final _labelController = TextEditingController(text: widget.preset?.label ?? '');
-  late final _commandController = TextEditingController(text: widget.preset?.command ?? '');
+  late final _labelController =
+      TextEditingController(text: widget.preset?.label ?? '');
+  late final _commandController =
+      TextEditingController(text: widget.preset?.command ?? '');
 
   @override
   void dispose() {
@@ -546,13 +586,15 @@ class _PresetEditDialogState extends State<_PresetEditDialog> {
         children: [
           TextField(
             controller: _labelController,
-            decoration: InputDecoration(labelText: S.t('标签'), hintText: S.t('例如：立即存档')),
+            decoration:
+                InputDecoration(labelText: S.t('标签'), hintText: S.t('例如：立即存档')),
             autofocus: true,
           ),
           const SizedBox(height: 12),
           TextField(
             controller: _commandController,
-            decoration: InputDecoration(labelText: S.t('命令'), hintText: S.t('例如：save-all')),
+            decoration: InputDecoration(
+                labelText: S.t('命令'), hintText: S.t('例如：save-all')),
             style: const TextStyle(fontFamily: 'monospace'),
           ),
         ],
@@ -572,7 +614,8 @@ class _PresetEditDialogState extends State<_PresetEditDialog> {
               );
               return;
             }
-            Navigator.pop(context, _PresetEditResult(label: label, command: command));
+            Navigator.pop(
+                context, _PresetEditResult(label: label, command: command));
           },
           child: T('保存'),
         ),

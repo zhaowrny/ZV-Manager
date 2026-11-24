@@ -37,7 +37,7 @@ class NotificationService {
       const settings = InitializationSettings(
         android: AndroidInitializationSettings('ic_stat_monitor'),
       );
-      await _plugin.initialize(settings);
+      await _plugin.initialize(settings: settings);
       _initialized = true;
     } catch (e) {
       debugPrint('通知服务初始化失败: $e');
@@ -104,7 +104,12 @@ class NotificationService {
       ),
     );
     try {
-      await _plugin.show(id, title, body, details);
+      await _plugin.show(
+        id: id,
+        title: title,
+        body: body,
+        notificationDetails: details,
+      );
     } catch (e) {
       debugPrint('发送通知失败: $e');
     }

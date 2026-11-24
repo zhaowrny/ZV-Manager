@@ -12,7 +12,8 @@ class RconProvider extends ChangeNotifier {
   Future<RconClient> getClient(ServerConfig server) async {
     var client = _clients[server.id];
     if (client == null) {
-      client = RconClient();
+      // 演示服务器走本地模拟客户端，不发起真实网络连接
+      client = server.isDemo ? RconClient.demo() : RconClient();
       _clients[server.id] = client;
     }
     if (!client.isConnected) {
@@ -41,7 +42,8 @@ class RconProvider extends ChangeNotifier {
       final playerInfo = results[0];
       // 执行超时返回 null，视为服务器不可达
       if (playerInfo == null) {
-        return ServerStatus(online: false, latencyMs: stopwatch.elapsedMilliseconds);
+        return ServerStatus(
+            online: false, latencyMs: stopwatch.elapsedMilliseconds);
       }
       return ServerStatus(
         online: true,
@@ -51,7 +53,8 @@ class RconProvider extends ChangeNotifier {
       );
     } catch (_) {
       stopwatch.stop();
-      return ServerStatus(online: false, latencyMs: stopwatch.elapsedMilliseconds);
+      return ServerStatus(
+          online: false, latencyMs: stopwatch.elapsedMilliseconds);
     }
   }
 
@@ -76,7 +79,8 @@ class ServerStatus {
   final int latencyMs;
   final String? playerInfo;
   final double? tps;
-  ServerStatus({required this.online, this.latencyMs = 0, this.playerInfo, this.tps});
+  ServerStatus(
+      {required this.online, this.latencyMs = 0, this.playerInfo, this.tps});
 
   /// 从 `list` 返回中解析在线玩家数量。
   /// 如「当前共有0名玩家在线（最大玩家数为20）：」或「There are 0 of a max of 20 players online:」，

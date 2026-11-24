@@ -28,6 +28,30 @@ String stripMinecraftCodes(String input) {
 /// - **心跳保活**：每 30 秒发一次 `list`，失败即判定掉线；
 /// - **指数退避重连**：1s → 2s → 4s … 封顶 60s，最多 10 次。
 class RconClient {
+  RconClient();
+
+  /// 创建演示客户端：不建立真实连接，所有命令由本地模拟器返回。
+  ///
+  /// 用于「测试模式」——没有真实服务器时也能走通控制台、玩家列表、
+  /// 状态轮询等完整流程。
+  RconClient.demo() {
+    _demo = true;
+  }
+
+  bool _demo = false;
+
+  /// 演示模式下的「连接」状态，不经过 socket。
+  bool _demoConnected = false;
+
+  /// 演示服务器在线玩家（kick / ban 会实时修改，便于观察列表变化）。
+  final List<String> _demoPlayers = ['Steve', 'Alex', 'Notch'];
+
+  static const Map<String, String> _demoUuids = {
+    'Steve': '8667ba71-b85a-4004-af54-457a9734eed7',
+    'Alex': 'ec561538-f3fd-461d-aff5-086b22154bce',
+    'Notch': '069a79f4-44e9-4726-a5be-fca90e38aaf5',
+  };
+
   Socket? _socket;
 
   /// 请求 id 自增计数器，用于把响应和请求配对
@@ -56,7 +80,8 @@ class RconClient {
   String? _password;
   bool _autoReconnect = true;
 
-  bool get isConnected => _isAuthenticated && _socket != null;
+  bool get isConnected =>
+      _demo ? _demoConnected : (_isAuthenticated && _socket != null);
 
   /// 建立 TCP 连接并完成 RCON 认证。
   ///
@@ -67,6 +92,12 @@ class RconClient {
     String password, {
     bool autoReconnect = true,
   }) async {
+    if (_demo) {
+      // 模拟一次握手耗时，让状态轮询的延迟数值看起来真实
+      await Future<void>.delayed(const Duration(milliseconds: 260));
+      _demoConnected = true;
+      return true;
+    }
     _host = host;
     _port = port;
     _password = password;
@@ -104,6 +135,7 @@ class RconClient {
 
   /// 执行一条控制台命令，返回服务端原文（可能为 null 表示超时）。
   Future<String?> executeCommand(String command) async {
+    if (_demo) return _demoExecute(command);
     if (!_isAuthenticated || _socket == null) {
       throw Exception(S.t('RCON 未连接或未认证'));
     }
@@ -114,12 +146,145 @@ class RconClient {
 
   /// 主动断开：取消定时器、销毁 socket、清空认证状态。
   void disconnect() {
+    _demoConnected = false;
     _heartbeatTimer?.cancel();
     _reconnectTimer?.cancel();
     _reconnectAttempts = 0;
     _socket?.destroy();
     _socket = null;
     _isAuthenticated = false;
+  }
+
+  /// 演示模式下的命令模拟：覆盖控制台预设、玩家管理与常用管理命令。
+  ///
+  /// 返回内容模仿原版服务端英文回显，确保现有的解析器
+  /// （在线人数 / 玩家列表 / TPS）无需任何特殊处理即可识别。
+  Future<String?> _demoExecute(String raw) async {
+    // 模拟网络往返，让控制台与状态卡片有真实的手感
+    await Future<void>.delayed(const Duration(milliseconds: 90));
+    if (!_demoConnected) {
+      throw Exception(S.t('RCON 未连接或未认证'));
+    }
+
+    final cmd = raw.trim();
+    if (cmd.isEmpty) return '';
+    final lower = cmd.toLowerCase();
+    String listLine() =>
+        'There are ${_demoPlayers.length} of a max of 20 players online: ${_demoPlayers.join(', ')}';
+
+    if (lower == 'list') return listLine();
+    if (lower == 'list uuids') {
+      final entries = _demoPlayers.map(
+        (name) =>
+            '$name (${_demoUuids[name] ?? '00000000-0000-0000-0000-000000000000'})',
+      );
+      return 'There are ${_demoPlayers.length} of a max of 20 players online: ${entries.join(', ')}';
+    }
+    if (lower == 'tps') return 'TPS from last 1m, 5m, 15m: 20.0, 20.0, 20.0';
+    if (lower == 'help' || lower == '?') {
+      return '演示服务器命令:\n'
+          '  list [uuids]        在线玩家\n'
+          '  tps                 服务器 TPS\n'
+          '  say <消息>           全服广播\n'
+          '  time set/query      时间\n'
+          '  weather clear/rain/thunder\n'
+          '  difficulty <难度>    游戏难度\n'
+          '  gamerule <规则> [值]\n'
+          '  seed / save-all / whitelist list\n'
+          '  op / deop / kick / ban <玩家>\n'
+          '  stop（演示中不会真的关闭）';
+    }
+    if (lower == 'seed') return 'Seed: [1234567890123456789]';
+    if (lower == 'save-all' || lower == 'save-all flush') {
+      return 'Saved the game';
+    }
+    if (lower == 'save-off') return 'Automatic saving is now disabled';
+    if (lower == 'save-on') return 'Automatic saving is now enabled';
+    if (lower == 'reload') return 'Reloading!';
+    if (lower == 'stop') return S.t('[演示] 收到 stop 命令，但演示服务器不会真的关闭');
+    if (lower == 'restart') return S.t('[演示] 演示服务器不模拟重启');
+    if (lower.startsWith('say ')) return '[Server] ${cmd.substring(4).trim()}';
+
+    if (lower == 'time' || lower == 'time query') {
+      return 'Usage: time <set|query|add> <value>';
+    }
+    if (lower == 'time query daytime') return 'The time is 1000';
+    if (lower == 'time query gametime') return 'The game time is 24000';
+    if (lower.startsWith('time set ') || lower.startsWith('time add ')) {
+      return 'Set the time to ${cmd.substring(9).trim()}';
+    }
+
+    if (lower == 'weather query') return 'The weather is clear';
+    if (lower.startsWith('weather ')) {
+      final arg = cmd.substring(8).trim().toLowerCase();
+      if (arg == 'clear' || arg == 'rain' || arg == 'thunder') {
+        return 'Set the weather to $arg';
+      }
+      return 'Usage: weather <clear|rain|thunder>';
+    }
+
+    if (lower == 'difficulty' || lower == 'difficulty query') {
+      return 'The difficulty is peaceful';
+    }
+    if (lower.startsWith('difficulty ')) {
+      return 'The difficulty of the server is now ${cmd.substring(11).trim().toLowerCase()}';
+    }
+
+    if (lower.startsWith('gamerule ')) {
+      final parts = cmd.split(RegExp(r'\s+'));
+      if (parts.length >= 3) {
+        return 'Gamerule ${parts[1]} is now set to: ${parts[2]}';
+      }
+      if (parts.length == 2) {
+        return 'Gamerule ${parts[1]} is currently set to: true';
+      }
+      return 'Usage: gamerule <rule> [value]';
+    }
+
+    if (lower == 'whitelist list') return 'There are 0 whitelisted players: ';
+    if (lower.startsWith('whitelist ')) {
+      return 'Whitelist is now turned ${lower.endsWith('off') ? 'off' : 'on'}';
+    }
+    if (lower == 'banlist' || lower == 'banlist players') {
+      return 'There are 0 ban(s):';
+    }
+
+    // 玩家管理：kick / ban 会实时从在线列表移除，玩家页刷新即可看到变化
+    final parts = cmd.split(RegExp(r'\s+'));
+    final sub = lower.split(RegExp(r'\s+')).first;
+    if (sub == 'op' ||
+        sub == 'deop' ||
+        sub == 'kick' ||
+        sub == 'ban' ||
+        sub == 'pardon') {
+      if (parts.length < 2) return 'Usage: $sub <player> [reason]';
+      final match = _demoPlayers.firstWhere(
+        (p) => p.toLowerCase() == parts[1].toLowerCase(),
+        orElse: () => '',
+      );
+      if (sub == 'pardon') return 'Unbanned ${parts[1]}';
+      if (match.isEmpty) return 'That player does not exist';
+      switch (sub) {
+        case 'op':
+          return 'Made $match a server operator';
+        case 'deop':
+          return 'Made $match no longer a server operator';
+        case 'kick':
+          _demoPlayers.remove(match);
+          final reason = parts.length > 2
+              ? parts.sublist(2).join(' ')
+              : 'Kicked by an operator';
+          return 'Kicked $match: $reason';
+        default:
+          _demoPlayers.remove(match);
+          final reason = parts.length > 2
+              ? parts.sublist(2).join(' ')
+              : 'Banned by an operator';
+          return 'Banned $match: $reason';
+      }
+    }
+
+    return 'Unknown or incomplete command, see below for error\n$cmd<--[HERE]';
   }
 
   /// 启动心跳：周期性发 `list`（最轻量的命令），失败即视为掉线。

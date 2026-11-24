@@ -10,10 +10,12 @@ import '../../core/l10n/strings.dart';
 import '../../core/widgets/empty_state_page.dart';
 import '../../core/widgets/z_widgets.dart';
 
-
 /// SSH 终端页：xterm 终端 + 快捷键栏 + 多服务器会话标签（M3）。
 class TerminalPage extends StatefulWidget {
-  const TerminalPage({super.key});
+  /// 可选的 AppBar bottom（如「控制台 / 终端」切换条），显示在会话标签上方。
+  final PreferredSizeWidget? bottom;
+
+  const TerminalPage({super.key, this.bottom});
 
   @override
   State<TerminalPage> createState() => _TerminalPageState();
@@ -31,9 +33,11 @@ class _TerminalPageState extends State<TerminalPage>
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    final servers = context.watch<ServerProvider>().servers.where((s) => s.hasSsh).toList();
+    final servers =
+        context.watch<ServerProvider>().servers.where((s) => s.hasSsh).toList();
     _sshServers = servers;
-    if (servers.isNotEmpty && (_activeId == null || !_sessions.containsKey(_activeId))) {
+    if (servers.isNotEmpty &&
+        (_activeId == null || !_sessions.containsKey(_activeId))) {
       _openSession(servers.first);
     }
   }
@@ -79,14 +83,52 @@ class _TerminalPageState extends State<TerminalPage>
     s.service.write(data);
   }
 
+  /// 会话标签条 + 可选的页签切换条（如「控制台 / 终端」分段控件）。
+  PreferredSizeWidget? _buildAppBarBottom() {
+    final switchBar = widget.bottom;
+    final hasTabs = _sessions.isNotEmpty;
+    if (switchBar == null && !hasTabs) return null;
+    final switchHeight = switchBar?.preferredSize.height ?? 0;
+    return PreferredSize(
+      preferredSize: Size.fromHeight(switchHeight + (hasTabs ? 44 : 0)),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (switchBar != null) switchBar,
+          if (hasTabs)
+            SizedBox(
+              height: 44,
+              child: ListView(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                children: _sessions.values.map((s) {
+                  final selected = s.server.id == _activeId;
+                  return Padding(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
+                    child: _SessionTab(
+                      label: s.server.name,
+                      selected: selected,
+                      onTap: () => setState(() => _activeId = s.server.id),
+                    ),
+                  );
+                }).toList(),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     super.build(context);
     if (_sshServers.isEmpty) {
-      return const EmptyStatePage(
+      return EmptyStatePage(
         title: '终端',
         icon: Icons.terminal_outlined,
         message: '没有配置 SSH 的服务器。\n\n请在「服务器」页编辑服务器，开启 SSH 后即可使用终端。',
+        bottom: widget.bottom,
       );
     }
     final hasWallpaper = context.watch<WallpaperProvider>().hasWallpaper;
@@ -105,31 +147,7 @@ class _TerminalPageState extends State<TerminalPage>
                 .toList(),
           ),
         ],
-        bottom: _sessions.isEmpty
-            ? null
-            : PreferredSize(
-                preferredSize: const Size.fromHeight(44),
-                child: SizedBox(
-                  height: 44,
-                  child: ListView(
-                    scrollDirection: Axis.horizontal,
-                    padding: const EdgeInsets.symmetric(horizontal: 8),
-                    children: _sessions.values.map((s) {
-                      final selected = s.server.id == _activeId;
-                      return Padding(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 4, vertical: 6),
-                        child: _SessionTab(
-                          label: s.server.name,
-                          selected: selected,
-                          onTap: () =>
-                              setState(() => _activeId = s.server.id),
-                        ),
-                      );
-                    }).toList(),
-                  ),
-                ),
-              ),
+        bottom: _buildAppBarBottom(),
       ),
       body: active == null
           ? Center(
@@ -165,7 +183,8 @@ class _TerminalPageState extends State<TerminalPage>
   Widget _buildQuickBar() {
     return Container(
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surfaceContainerHigh.withOpacity(0.5),
+        color:
+            Theme.of(context).colorScheme.surfaceContainerHigh.withOpacity(0.5),
         border: Border(
           top: BorderSide(color: Theme.of(context).colorScheme.outlineVariant),
         ),

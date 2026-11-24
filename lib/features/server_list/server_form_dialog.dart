@@ -77,7 +77,9 @@ class _ServerFormDialogState extends State<ServerFormDialog> {
     if (!_formKey.currentState!.validate()) return;
 
     final server = ServerConfig(
-      id: isEditing ? widget.existingServer!.id : DateTime.now().millisecondsSinceEpoch.toString(),
+      id: isEditing
+          ? widget.existingServer!.id
+          : DateTime.now().millisecondsSinceEpoch.toString(),
       name: _nameCtrl.text.trim(),
       host: _hostCtrl.text.trim(),
       port: int.parse(_portCtrl.text.trim()),
@@ -86,6 +88,8 @@ class _ServerFormDialogState extends State<ServerFormDialog> {
       sshPort: int.tryParse(_sshPortCtrl.text.trim()) ?? 22,
       sshUser: _sshUserCtrl.text.trim(),
       sshPassword: _sshPasswordCtrl.text,
+      // 编辑时保留演示标记，否则保存后演示服务器会退化成真实连接
+      isDemo: widget.existingServer?.isDemo ?? false,
     );
 
     Navigator.pop(context, server);
@@ -104,21 +108,24 @@ class _ServerFormDialogState extends State<ServerFormDialog> {
             children: [
               TextFormField(
                 controller: _nameCtrl,
-                decoration: InputDecoration(labelText: S.t('服务器名称'), hintText: S.t('例如: 我的生存服')),
+                decoration: InputDecoration(
+                    labelText: S.t('服务器名称'), hintText: S.t('例如: 我的生存服')),
                 validator: (v) => _validateRequired(v, '服务器名称'),
                 textInputAction: TextInputAction.next,
               ),
               const SizedBox(height: 12),
               TextFormField(
                 controller: _hostCtrl,
-                decoration: InputDecoration(labelText: S.t('主机地址'), hintText: S.t('IP 或域名')),
+                decoration: InputDecoration(
+                    labelText: S.t('主机地址'), hintText: S.t('IP 或域名')),
                 validator: (v) => _validateRequired(v, '主机地址'),
                 textInputAction: TextInputAction.next,
               ),
               const SizedBox(height: 12),
               TextFormField(
                 controller: _portCtrl,
-                decoration: InputDecoration(labelText: S.t('RCON 端口'), hintText: S.t('默认 25575')),
+                decoration: InputDecoration(
+                    labelText: S.t('RCON 端口'), hintText: S.t('默认 25575')),
                 keyboardType: TextInputType.number,
                 validator: _validatePort,
                 textInputAction: TextInputAction.next,
@@ -130,8 +137,11 @@ class _ServerFormDialogState extends State<ServerFormDialog> {
                 decoration: InputDecoration(
                   labelText: S.t('RCON 密码'),
                   suffixIcon: IconButton(
-                    icon: Icon(_obscurePassword ? Icons.visibility_off_outlined : Icons.visibility_outlined),
-                    onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                    icon: Icon(_obscurePassword
+                        ? Icons.visibility_off_outlined
+                        : Icons.visibility_outlined),
+                    onPressed: () =>
+                        setState(() => _obscurePassword = !_obscurePassword),
                   ),
                 ),
                 validator: (v) => _validateRequired(v, 'RCON 密码'),
@@ -156,7 +166,8 @@ class _ServerFormDialogState extends State<ServerFormDialog> {
               if (_sshEnabled) ...[
                 TextFormField(
                   controller: _sshPortCtrl,
-                  decoration: InputDecoration(labelText: S.t('SSH 端口'), hintText: S.t('默认 22')),
+                  decoration: InputDecoration(
+                      labelText: S.t('SSH 端口'), hintText: S.t('默认 22')),
                   keyboardType: TextInputType.number,
                   validator: (v) {
                     if (!_sshEnabled) return null;
@@ -167,8 +178,10 @@ class _ServerFormDialogState extends State<ServerFormDialog> {
                 const SizedBox(height: 12),
                 TextFormField(
                   controller: _sshUserCtrl,
-                  decoration: InputDecoration(labelText: S.t('SSH 用户名'), hintText: S.t('例如 root')),
-                  validator: (v) => _sshEnabled ? _validateRequired(v, 'SSH 用户名') : null,
+                  decoration: InputDecoration(
+                      labelText: S.t('SSH 用户名'), hintText: S.t('例如 root')),
+                  validator: (v) =>
+                      _sshEnabled ? _validateRequired(v, 'SSH 用户名') : null,
                   textInputAction: TextInputAction.next,
                 ),
                 const SizedBox(height: 12),
@@ -181,11 +194,12 @@ class _ServerFormDialogState extends State<ServerFormDialog> {
                       icon: Icon(_obscureSshPassword
                           ? Icons.visibility_off_outlined
                           : Icons.visibility_outlined),
-                      onPressed: () =>
-                          setState(() => _obscureSshPassword = !_obscureSshPassword),
+                      onPressed: () => setState(
+                          () => _obscureSshPassword = !_obscureSshPassword),
                     ),
                   ),
-                  validator: (v) => _sshEnabled ? _validateRequired(v, 'SSH 密码') : null,
+                  validator: (v) =>
+                      _sshEnabled ? _validateRequired(v, 'SSH 密码') : null,
                   textInputAction: TextInputAction.done,
                   onFieldSubmitted: (_) => _submit(),
                 ),

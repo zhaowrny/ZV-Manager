@@ -27,7 +27,8 @@ class _ServerListPageState extends State<ServerListPage> {
   @override
   void initState() {
     super.initState();
-    _pollTimer = Timer.periodic(const Duration(seconds: 5), (_) => _refreshAll());
+    _pollTimer =
+        Timer.periodic(const Duration(seconds: 5), (_) => _refreshAll());
     _refreshAll();
   }
 
@@ -126,7 +127,8 @@ class _ServerListPageState extends State<ServerListPage> {
     if (enteredClient != null) {
       Navigator.push(
         context,
-        MaterialPageRoute(builder: (_) => ConsolePage(rconClient: enteredClient)),
+        MaterialPageRoute(
+            builder: (_) => ConsolePage(rconClient: enteredClient)),
       );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -134,7 +136,6 @@ class _ServerListPageState extends State<ServerListPage> {
       );
     }
   }
-
 
   /// 计算卡片状态：无缓存且未在请求中 -> loading；有缓存 -> online/offline。
   ServerCardState _cardStateOf(String id, ServerStatus? status) {

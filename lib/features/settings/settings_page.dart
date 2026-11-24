@@ -13,6 +13,7 @@ import '../../core/widgets/background_widget.dart';
 import '../../core/widgets/z_widgets.dart';
 import '../../providers/theme_provider.dart';
 import '../../providers/wallpaper_provider.dart';
+import '../../providers/glass_provider.dart';
 import 'help_page.dart';
 import 'server_log_page.dart';
 import 'about_page.dart';
@@ -217,10 +218,8 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 
   Future<void> _pickVideo() async {
-    final result = await FilePicker.platform.pickFiles(type: FileType.video);
-    if (result == null) return;
-
-    final filePath = result.files.single.path;
+    final picked = await FilePicker.pickFile(type: FileType.video);
+    final filePath = picked?.path;
     if (filePath == null) return;
 
     final path = await _saveFileToAssets(filePath, 'video');
@@ -404,6 +403,7 @@ class _SettingsPageState extends State<SettingsPage> {
     final themeProvider = context.watch<ThemeProvider>();
     final hasWallpaper = context.watch<WallpaperProvider>().hasWallpaper;
     final monitor = context.watch<ServerMonitorService>();
+    final glass = context.watch<GlassProvider>();
     final scheme = Theme.of(context).colorScheme;
     final st = ZStyle(hasWallpaper: hasWallpaper, scheme: scheme);
     final systemIsDark =
@@ -455,6 +455,20 @@ class _SettingsPageState extends State<SettingsPage> {
               style: st,
               value: S.t(themeProvider.themeColor.label),
               onTap: _pickThemeColor,
+            ),
+            ZDivider(style: st),
+            ZRow(
+              title: '液态玻璃',
+              subtitle: glass.enabled
+                  ? '已开启：面板、顶栏、底栏均为毛玻璃质感'
+                  : '半透明毛玻璃面板 + 高光描边，开启后全站生效',
+              style: st,
+              trailing: ZCheck(
+                value: glass.enabled,
+                size: 26,
+                borderColor: st.subColor,
+                onChanged: (v) => context.read<GlassProvider>().setEnabled(v),
+              ),
             ),
             ZDivider(style: st),
             ZRow(

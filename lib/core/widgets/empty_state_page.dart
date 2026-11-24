@@ -12,6 +12,9 @@ class EmptyStatePage extends StatelessWidget {
   final String? actionLabel;
   final VoidCallback? onAction;
 
+  /// 可选的 AppBar bottom（例如页签内的模式切换条）。
+  final PreferredSizeWidget? bottom;
+
   const EmptyStatePage({
     super.key,
     required this.title,
@@ -19,13 +22,14 @@ class EmptyStatePage extends StatelessWidget {
     required this.message,
     this.actionLabel,
     this.onAction,
+    this.bottom,
   });
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Scaffold(
-      appBar: ZAppBar(title: T(title)),
+      appBar: ZAppBar(title: T(title), bottom: bottom),
       body: Center(
         child: Padding(
           padding: const EdgeInsets.all(32),
@@ -39,8 +43,7 @@ class EmptyStatePage extends StatelessWidget {
                   color: theme.colorScheme.primary.withOpacity(0.12),
                   borderRadius: BorderRadius.circular(20),
                 ),
-                child: Icon(icon,
-                    size: 36, color: theme.colorScheme.primary),
+                child: Icon(icon, size: 36, color: theme.colorScheme.primary),
               ),
               const SizedBox(height: 16),
               Text(

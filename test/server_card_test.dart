@@ -30,8 +30,8 @@ void main() {
       // 服务器未下发 max like，展示「18 人」
       expect(find.textContaining('18'), findsWidgets);
       expect(find.text('TPS 19.8'), findsOneWidget);
-      expect(find.text('在线'), findsOneWidget);
-      expect(find.text('42ms'), findsOneWidget);
+      // 在线态把状态与延迟合并在同一个徽章里展示
+      expect(find.text('在线 · 42ms'), findsOneWidget);
       expect(tester.takeException(), isNull);
     });
 

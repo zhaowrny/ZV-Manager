@@ -3,9 +3,12 @@ import 'package:package_info_plus/package_info_plus.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/l10n/strings.dart';
+import '../../core/services/demo_server.dart';
 import '../../core/utils/update_service.dart';
 import '../../core/utils/app_links.dart';
 import '../../core/widgets/z_widgets.dart';
+import '../../providers/rcon_provider.dart';
+import '../../providers/server_provider.dart';
 import '../../providers/wallpaper_provider.dart';
 
 /// 关于软件页：版本与检查更新 + 开发者信息 + 开源许可。
@@ -22,6 +25,10 @@ class AboutPage extends StatefulWidget {
 class _AboutPageState extends State<AboutPage> {
   String _currentVersion = '';
   bool _checkingUpdate = false;
+
+  /// 连点版本号 7 次解锁隐藏调试入口
+  int _versionTaps = 0;
+  bool _debugUnlocked = false;
 
   @override
   void initState() {
@@ -40,7 +47,8 @@ class _AboutPageState extends State<AboutPage> {
   Future<void> _checkUpdate() async {
     setState(() => _checkingUpdate = true);
     try {
-      final updateInfo = await UpdateService.fetchInfo(userAgent: _currentVersion);
+      final updateInfo =
+          await UpdateService.fetchInfo(userAgent: _currentVersion);
       if (!mounted) return;
       setState(() => _checkingUpdate = false);
 
@@ -61,6 +69,53 @@ class _AboutPageState extends State<AboutPage> {
     }
   }
 
+  /// 隐藏调试入口：连点版本号 7 次解锁「测试模式」面板。
+  void _onVersionTap() {
+    if (_debugUnlocked) return;
+    _versionTaps++;
+    if (_versionTaps >= 7) {
+      setState(() => _debugUnlocked = true);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: T('调试入口已开启')),
+      );
+    }
+  }
+
+  Future<void> _addDemoServer() async {
+    final provider = context.read<ServerProvider>();
+    if (provider.servers.any((s) => s.isDemo)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: T('演示服务器已在列表中')),
+      );
+      return;
+    }
+    await provider.addServer(createDemoServer());
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: T('演示服务器已添加，可在「服务器」页查看')),
+    );
+  }
+
+  Future<void> _removeDemoServer() async {
+    final provider = context.read<ServerProvider>();
+    final demos = provider.servers.where((s) => s.isDemo).toList();
+    if (demos.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: T('演示服务器不在列表中')),
+      );
+      return;
+    }
+    final rcon = context.read<RconProvider>();
+    for (final s in demos) {
+      await provider.removeServer(s.id);
+      rcon.disposeServer(s.id);
+    }
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: T('已移除演示服务器')),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final hasWallpaper = context.watch<WallpaperProvider>().hasWallpaper;
@@ -75,7 +130,8 @@ class _AboutPageState extends State<AboutPage> {
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
         children: [
-          _Header(version: _currentVersion, style: st),
+          _Header(
+              version: _currentVersion, style: st, onVersionTap: _onVersionTap),
           const SizedBox(height: 20),
           ZPanel(style: st, children: [
             ZRow(
@@ -97,8 +153,8 @@ class _AboutPageState extends State<AboutPage> {
               title: '开源许可',
               subtitle: '查看本应用使用的第三方库许可',
               style: st,
-              leading: Icon(Icons.fact_check_outlined,
-                  size: 20, color: st.subColor),
+              leading:
+                  Icon(Icons.fact_check_outlined, size: 20, color: st.subColor),
               onTap: () => showLicensePage(context: context),
             ),
             ZDivider(style: st),
@@ -106,8 +162,8 @@ class _AboutPageState extends State<AboutPage> {
               title: '支持作者 · 爱发电',
               subtitle: '通过爱发电支持项目开发',
               style: st,
-              leading: Icon(Icons.favorite_border,
-                  size: 20, color: st.subColor),
+              leading:
+                  Icon(Icons.favorite_border, size: 20, color: st.subColor),
               onTap: () => openAfdian(context),
             ),
             ZDivider(style: st),
@@ -115,11 +171,33 @@ class _AboutPageState extends State<AboutPage> {
               title: '加入官方 QQ 群',
               subtitle: '与开发者和其他用户交流',
               style: st,
-              leading: Icon(Icons.group_outlined,
-                  size: 20, color: st.subColor),
+              leading: Icon(Icons.group_outlined, size: 20, color: st.subColor),
               onTap: () => joinQQGroup(context),
             ),
           ]),
+          if (_debugUnlocked) ...[
+            const SizedBox(height: 14),
+            _SectionLabel('调试', style: st),
+            ZPanel(style: st, children: [
+              ZRow(
+                title: '添加演示服务器',
+                subtitle: '不联网的本地模拟服务器（RCON + SSH + SFTP）',
+                style: st,
+                leading:
+                    Icon(Icons.science_outlined, size: 20, color: st.subColor),
+                onTap: _addDemoServer,
+              ),
+              ZDivider(style: st),
+              ZRow(
+                title: '移除演示服务器',
+                subtitle: '从服务器列表删除内置演示项',
+                style: st,
+                leading:
+                    Icon(Icons.delete_outline, size: 20, color: st.subColor),
+                onTap: _removeDemoServer,
+              ),
+            ]),
+          ],
           const SizedBox(height: 14),
           _SectionLabel('创造者', style: st),
           ZPanel(style: st, children: [
@@ -127,7 +205,7 @@ class _AboutPageState extends State<AboutPage> {
               style: st,
               name: 'Z有3笔',
               role: S.t('开发者 · Gitee: DriftinBlock'),
-              assetAvatar: 'assets/creator_zavatar.png',
+              assetAvatar: 'assets/creator_zavatar.jpg',
               homeUrl: 'https://gitee.com/driftinblock',
             ),
             ZDivider(style: st),
@@ -135,7 +213,7 @@ class _AboutPageState extends State<AboutPage> {
               style: st,
               name: 'Ventiの酒',
               role: S.t('协作者 · Gitee: venti1112'),
-              avatarUrl: 'https://gitee.com/venti1112.png',
+              assetAvatar: 'assets/creator_venti1112.jpg',
               homeUrl: 'https://gitee.com/venti1112',
             ),
           ]),
@@ -156,7 +234,12 @@ class _AboutPageState extends State<AboutPage> {
 class _Header extends StatelessWidget {
   final String version;
   final ZStyle style;
-  const _Header({required this.version, required this.style});
+  final VoidCallback onVersionTap;
+  const _Header({
+    required this.version,
+    required this.style,
+    required this.onVersionTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -176,9 +259,16 @@ class _Header extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 3),
-        Text(
-          S.f('版本 {0}', [version]),
-          style: TextStyle(fontSize: 12.5, color: style.subColor),
+        GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: onVersionTap,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+            child: Text(
+              S.f('版本 {0}', [version]),
+              style: TextStyle(fontSize: 12.5, color: style.subColor),
+            ),
+          ),
         ),
       ],
     );

@@ -31,7 +31,8 @@ class _ModListPageState extends State<ModListPage>
   void didChangeDependencies() {
     super.didChangeDependencies();
     final server = context.read<SelectedServerHolder>().server;
-    if (server != null && (_provider == null || _provider!.server?.id != server.id)) {
+    if (server != null &&
+        (_provider == null || _provider!.server?.id != server.id)) {
       _disposeProvider();
       final p = ModProvider();
       _provider = p;
@@ -124,7 +125,8 @@ class _ModListPageState extends State<ModListPage>
                       itemBuilder: (_) => const [
                         PopupMenuItem(value: ModSortMode.name, child: T('按名称')),
                         PopupMenuItem(value: ModSortMode.size, child: T('按大小')),
-                        PopupMenuItem(value: ModSortMode.mtime, child: T('按修改时间')),
+                        PopupMenuItem(
+                            value: ModSortMode.mtime, child: T('按修改时间')),
                       ],
                     ),
                   ],
@@ -160,8 +162,8 @@ class _ModListPageState extends State<ModListPage>
                             const SizedBox(height: 12),
                             Text(
                               S.t('目录下没有 .jar 文件'),
-                              style: TextStyle(
-                                  fontSize: 13, color: st.subColor),
+                              style:
+                                  TextStyle(fontSize: 13, color: st.subColor),
                             ),
                             const SizedBox(height: 16),
                             FilledButton.tonal(
@@ -198,7 +200,8 @@ class _ModListPageState extends State<ModListPage>
   }
 
   /// 单个 jar 行：文件名 + 元数据（名称/版本/大小）+ 操作菜单。
-  Widget _jarRow(BuildContext context, ModProvider mod, RemoteJarFile f, ZStyle st) {
+  Widget _jarRow(
+      BuildContext context, ModProvider mod, RemoteJarFile f, ZStyle st) {
     final metaLine = [
       if (f.meta.name != null) f.meta.name!,
       if (f.meta.version != null) f.meta.version!,
@@ -238,23 +241,24 @@ class _ModListPageState extends State<ModListPage>
   }
 
   Future<void> _upload(BuildContext context, ModProvider mod) async {
-    final result = await FilePicker.platform.pickFiles(
+    final picked = await FilePicker.pickFile(
       type: FileType.custom,
       allowedExtensions: ['jar'],
     );
-    if (result == null || result.files.single.path == null) return;
+    final jarPath = picked?.path;
+    if (jarPath == null) return;
     try {
-      await mod.uploadJar(result.files.single.path!);
+      await mod.uploadJar(jarPath);
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text(S.f('上传失败：{0}', [e.toString()]))));
+        ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(S.f('上传失败：{0}', [e.toString()]))));
       }
     }
   }
 
-  Future<void> _onAction(
-      BuildContext context, ModProvider mod, RemoteJarFile f, String action) async {
+  Future<void> _onAction(BuildContext context, ModProvider mod, RemoteJarFile f,
+      String action) async {
     switch (action) {
       case 'delete':
         final ok = await showDialog<bool>(
@@ -263,8 +267,12 @@ class _ModListPageState extends State<ModListPage>
             title: T('确认删除'),
             content: Text(S.f('确定要删除 {0} 吗？此操作不可恢复。', [f.fileName])),
             actions: [
-              TextButton(onPressed: () => Navigator.pop(context, false), child: T('取消')),
-              FilledButton(onPressed: () => Navigator.pop(context, true), child: T('删除')),
+              TextButton(
+                  onPressed: () => Navigator.pop(context, false),
+                  child: T('取消')),
+              FilledButton(
+                  onPressed: () => Navigator.pop(context, true),
+                  child: T('删除')),
             ],
           ),
         );
@@ -278,7 +286,8 @@ class _ModListPageState extends State<ModListPage>
             title: T('重命名'),
             content: TextField(controller: ctrl, autofocus: true),
             actions: [
-              TextButton(onPressed: () => Navigator.pop(context), child: T('取消')),
+              TextButton(
+                  onPressed: () => Navigator.pop(context), child: T('取消')),
               FilledButton(
                   onPressed: () => Navigator.pop(context, ctrl.text.trim()),
                   child: T('确定')),
